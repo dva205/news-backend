@@ -2,9 +2,15 @@ import express from 'express';
 import webRoute from './routes/web.js';
 // Get the client
 import mysql from 'mysql2';
+import cors from "cors";
 
 const app = express();
 const port = 3000;
+
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true,
+}));
 
 // Create the connection to database
 const connection = mysql.createConnection({
@@ -14,22 +20,20 @@ const connection = mysql.createConnection({
 });
 
 // Thực hiện query
-connection.query(
-  'SELECT * FROM `users` WHERE `username` = "dat123" AND `id` = 1',
-  function (err, results, fields) {
-    if (err) throw err;
-    console.log('📄 Kết quả truy vấn:');
-    console.log(results);  
-    console.log('📋 Thông tin cột:');
-    console.log(fields);  
-  }
-);
+app.get("/api/users", (req, res) => {
+  connection.query("SELECT * FROM users", (err, results) => {
+    if (err) {
+      console.error("Lỗi khi truy vấn:", err);
+      return res.status(500).json({ error: "Lỗi server" });
+    }
+    res.json(results);
+  });
+});
 
-// Đóng kết nối sau khi xong
-connection.end();
+
 
 app.use(webRoute);
 
 app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`)
+  console.log(`Example app listening on port ${port}`)
 })
