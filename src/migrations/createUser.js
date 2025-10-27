@@ -9,14 +9,29 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      firstName: {
-        type: Sequelize.STRING
-      },
-      lastName: {
-        type: Sequelize.STRING
-      },
       email: {
         type: Sequelize.STRING
+      },
+      username: {
+        type: Sequelize.STRING
+      },
+      password: {
+        type: Sequelize.STRING
+      },
+      display_name: {
+        type: Sequelize.STRING
+      },
+      role: {
+        type: Sequelize.BOOLEAN
+      },
+      dob: {
+        type: Sequelize.DATE
+      },
+      gender: {
+        type: Sequelize.BOOLEAN
+      },
+      avatar_url: {
+        type: Sequelize.BOOLEAN
       },
       createdAt: {
         allowNull: false,

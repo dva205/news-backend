@@ -4,7 +4,10 @@
     "password": null,
     "database": "news_app",
     "host": "127.0.0.1",
-    "dialect": "mysql"
+    "dialect": "mysql",
+    "define": {
+      "freezerTableName": true
+    }
   },
   "test": {
     "username": "root",
