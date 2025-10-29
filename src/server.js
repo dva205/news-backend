@@ -1,7 +1,8 @@
 import express from 'express';
-import webRoute from './routes/web.js';
 import * as dotenv from 'dotenv';
 import connectDB from './config/connectDB.js';
+import childAuthRoute from './routes/childAuthRoute.js';
+import parentAuthRoute from './routes/parentAuthRoute.js';
 dotenv.config();
 
 
@@ -11,11 +12,14 @@ const PORT = process.env.PORT || 5001;
 // middleware
 app.use(express.json());
 
-// connectDB
+// connectDB 
 connectDB();
 
-app.use(webRoute);
+// public routes
+app.use('/parent/auth', parentAuthRoute)
+app.use('/child/auth', childAuthRoute)
 
+// private routes
 
 
 app.listen(PORT, () => {
