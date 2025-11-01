@@ -1,43 +1,58 @@
 import bcrypt from 'bcrypt';
+import jwt from "jsonwebtoken";
 import db from '../models/index.js';
+import * as dotenv from 'dotenv';
+import crypto from "crypto";
+import { Op } from "sequelize";
+dotenv.config();
+
 
 export const parentSignUp = async (req, res) => {
     try {
+        // lấy input
         const { email, password, firstName, lastName } = req.body;
 
+        // validate
         if (!email || !password || !firstName || !lastName) {
             return res.status(400).json({
                 EC: -1,
-                EM: "Email, password, firstName, lastName must be not null",
+                EM: "Email, password, firstName, lastName không được để trống",
                 DT: {}
             });
         }
 
-        const existEmail = await db.Parent.findOne({ where: { email } })
+        const existUser = await db.User.findOne({ where: { email } })
 
-        if (existEmail) {
+        if (existUser) {
             return res.status(400).json({
                 EC: -1,
-                EM: "Email is already exist",
+                EM: "Email đã tồn tại",
                 DT: {}
             });
         }
 
+        // mã hóa password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-
-        await db.Parent.create({
+        // tạo user mới
+        const newUser = await db.User.create({
             email,
-            password: hashedPassword,
-            firstName,
-            lastName,
-            role: 1
+            password_hashed: hashedPassword,
+            first_name: firstName,
+            last_name: lastName,
+            display_name: `${firstName} ${lastName}`,
+            role: "PARENT"
         });
 
-        return res.status(204).json({
+        return res.status(200).json({
             EC: 0,
-            EM: "Sign up successfully",
-            DT: {}
+            EM: "Đăng kí thành công",
+            DT: {
+                id: newUser.id,
+                email: newUser.email,
+                role: newUser.role,
+                display_name: newUser.display_name,
+            }
         });
 
     } catch (error) {
@@ -55,58 +70,154 @@ export const parentSignUp = async (req, res) => {
 export const parentSignIn = async (req, res) => {
     try {
         // lấy input
-
         const { email, password } = req.body;
 
+        // validate
         if (!email || !password) {
             return res.status(400).json({
                 EC: -1,
-                EM: "Email and password must be not null",
+                EM: "Email và password không được để trống",
+                DT: {}
+            })
+        }
+
+        const existUser = await db.User.findOne({ 
+            where: { 
+                email,
+                role: "PARENT"
+            } 
+        })
+
+        if (!existUser) {
+            return res.status(400).json({
+                EC: -1,
+                EM: "Email hoặc password không chính xác",
                 DT: {}
             })
         }
 
         // lấy password db đã hash so sánh với input
-
-        const existUser = await db.Parent.findOne({ where: { email } })
-
-        if (!existUser) {
-            return res.status(400).json({
-                EC: -1,
-                EM: "Email or password incorrect",
-                DT: {}
-            })
-        }
-
-        const isCorrectPassword = await bcrypt.compare(password, existUser.password);
+        const isCorrectPassword = await bcrypt.compare(password, existUser.password_hashed);
 
         if (!isCorrectPassword) {
             return res.status(401).json({
                 EC: -1,
-                EM: "Email or password incorrect",
+                EM: "Email hoặc password không chính xác",
                 DT: {}
             })
         }
 
-        return res.status(204).json({
+        // Tạo accessToken 
+        const payload = {
+            id: existUser.id,
+            role: existUser.role
+        };
+        const secretKey = process.env.ACCESS_TOKEN_SECRET;
+        const ACCESS_TOKEN_TTL = "30m";
+        
+        const accessToken = jwt.sign(payload, secretKey, {expiresIn: ACCESS_TOKEN_TTL,});
+
+        // Tạo refresh token
+        const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000;
+
+        const refreshTokenRaw = crypto.randomBytes(64).toString("hex");
+
+        const refreshTokenHash = await bcrypt.hash(refreshTokenRaw, 10);
+
+        // Tạo session mới để lưu refresh token vào db
+        await db.Session.create({
+            user_id: existUser.id,
+            refresh_token_hash: refreshTokenHash,
+            expires_at: new Date(Date.now() + REFRESH_TOKEN_TTL)
+        })
+
+
+        // trả refresh token raw về cookie
+        res.cookie('refreshToken', refreshTokenRaw, {
+            httpOnly: true,
+            // secure: true,
+            sameSite: "none",
+            maxAge: REFRESH_TOKEN_TTL
+        })
+        
+
+        return res.status(200).json({
             EC: 0,
-            EM: "Sign in successfully",
-            DT: {}
+            EM: "Đăng nhập thành công",
+            DT: {  
+                id: existUser.id,
+                email: existUser.email,
+                role: existUser.role,
+                display_name: existUser.display_name,
+                accessToken
+            }
         })
 
     } catch (error) {
-        console.log("Error while sign up", error);
+        console.log("Lỗi khi đăng nhập", error);
         return res.status(500).json({
             EC: -1,
             EM: "Internal Server Error",
             DT: {}
-
         });
     }
 
 }
 
-export const parentLogOut = () => {
+export const parentSignOut = async (req, res) => {
+    try {
+        // Lấy refresh token từ cookie
+        const refreshTokenRaw = req.cookies?.refreshToken;
 
+        if (!refreshTokenRaw) {
+            // Không có cookie -> coi như đã đăng xuất
+            return res.status(200).json({
+                EC: 0,
+                EM: "Không có phiên nào để đăng xuất (đã logout)",
+                DT: {}
+            });
+        }
+
+        // tìm session còn hạn
+        const sessions = await db.Session.findAll({
+            where: {
+                expires_at: { [Op.gt]: new Date() // expires_at < Date.now()
+            }}
+        })
+
+        // dùng bcrypt so sánh
+        let matchedSession = null;
+        for (const session of sessions) {
+            // so sánh token ở cookie và token ở session trong db
+            const isMatch = await bcrypt.compare(refreshTokenRaw, session.refresh_token_hash);
+
+            if (isMatch) {
+                matchedSession = session;
+                break;
+            }
+        }
+
+        // xóa token ở db 
+        if (matchedSession) {
+            await matchedSession.destroy()
+        }
+        
+        // xóa cookie phía client
+        res.clearCookie("refreshToken");
+
+        return res.status(200).json({
+            EC: 0,
+            EM: "Đăng xuất thành công",
+            DT: {}
+        });
+
+    } catch (error) {
+        console.log("Lỗi khi sign out", error);
+        return res.status(500).json({
+            EC: -1,
+            EM: "Internal Server Error",
+            DT: {}
+        })
+    }
 }
 
