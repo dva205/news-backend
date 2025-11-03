@@ -1,10 +1,16 @@
 import express from 'express';
 import * as dotenv from 'dotenv';
 import connectDB from './config/connectDB.js';
-import childAuthRoute from './routes/childAuthRoute.js';
-import parentAuthRoute from './routes/parentAuthRoute.js';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
+
+import parentAuthRoute from './routes/parentAuthRoute.js';
+import parentRoute from './routes/parentRoute.js';
+import childAuthRoute from './routes/childAuthRoute.js';
+
+import { requireAuth } from './middlewares/requireAuth.js';
+import { requireParent } from './middlewares/requireParent.js';
+
 dotenv.config();
 
 const app = express();
@@ -18,7 +24,7 @@ app.use(cookieParser());
 app.use(
   cors({
     origin: ['http://localhost:5173'],
-    credentials: true, 
+    credentials: true,
   }),
 );
 
@@ -27,9 +33,10 @@ connectDB();
 
 // public routes
 app.use('/parent/auth', parentAuthRoute)
-app.use('/child/auth', childAuthRoute)
 
 // private routes
+app.use('/parent/child', requireAuth, requireParent, parentRoute);
+app.use('/child/auth', childAuthRoute)
 
 
 app.listen(PORT, () => {

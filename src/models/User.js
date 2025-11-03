@@ -4,20 +4,14 @@ module.exports = (sequelize, DataTypes) => {
   class User extends Model {
     static associate(models) {
       User.hasMany(models.User, {
-        as: 'children',            
+        as: 'children',
         foreignKey: 'parent_id',
       });
 
       User.belongsTo(models.User, {
-        as: 'parent',              
+        as: 'parent',
         foreignKey: 'parent_id',
       });
-
-      // Nếu bạn có RefreshToken model
-      // User.hasMany(models.RefreshToken, {
-      //   foreignKey: 'user_id',
-      //   as: 'refreshTokens',
-      // });
     }
   }
 
@@ -29,9 +23,14 @@ module.exports = (sequelize, DataTypes) => {
         unique: true,
         validate: { isEmail: true },
       },
+      username: {
+        type: DataTypes.STRING(100),
+        allowNull: true,
+        unique: true,
+      },
       password_hashed: {
         type: DataTypes.STRING(255),
-        allowNull: false, 
+        allowNull: true,
       },
       first_name: DataTypes.STRING(50),
       last_name: DataTypes.STRING(50),
@@ -41,7 +40,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         defaultValue: 'CHILD',
       },
-      dob: DataTypes.DATE,
+      dob: DataTypes.DATEONLY,
       gender: {
         type: DataTypes.ENUM('MALE', 'FEMALE', 'OTHER'),
         allowNull: true,
@@ -49,9 +48,9 @@ module.exports = (sequelize, DataTypes) => {
       avatar_url: DataTypes.STRING(255),
       parent_id: {
         type: DataTypes.BIGINT.UNSIGNED,
-        allowNull: true, 
+        allowNull: true,
         references: {
-          model: 'users', 
+          model: 'users',
           key: 'id',
         },
         onDelete: 'SET NULL',
@@ -61,9 +60,9 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: 'User',
-      tableName: 'user',
-      timestamps: true, 
-      underscored: true, 
+      tableName: 'users',
+      timestamps: true,
+      underscored: true,
     }
   );
 

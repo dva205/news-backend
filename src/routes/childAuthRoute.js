@@ -1,10 +1,13 @@
 import express from "express";
-import { childSignIn, childLogOut } from '../controllers/childAuthController.js'
+import { validateInvite, activateChildAccount, childSignIn, childSignOut, refreshToken } from "../controllers/childAuthController.js";
+import { requireAuth } from "../middlewares/requireAuth.js";
 
 const router = express.Router();
 
+router.get('/invite', validateInvite)
+router.post('/activate', activateChildAccount)
 router.post('/signin', childSignIn)
-router.post('/logout', childLogOut)
-// router.post('/refresh')
+router.post('/signout', requireAuth, childSignOut)
+router.post('/refresh', refreshToken)
 
 export default router;

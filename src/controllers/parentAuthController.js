@@ -35,7 +35,7 @@ export const parentSignUp = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // tạo user mới
-        const newUser = await db.User.create({
+        const newParent = await db.User.create({
             email,
             password_hashed: hashedPassword,
             first_name: firstName,
@@ -48,20 +48,19 @@ export const parentSignUp = async (req, res) => {
             EC: 0,
             EM: "Đăng kí thành công",
             DT: {
-                id: newUser.id,
-                email: newUser.email,
-                role: newUser.role,
-                display_name: newUser.display_name,
+                id: newParent.id,
+                email: newParent.email,
+                role: newParent.role,
+                display_name: newParent.display_name,
             }
         });
 
     } catch (error) {
-        console.log("Error while sign up", error);
+        console.log("Lỗi khi tạo tài khoản cho bố mẹ", error);
         return res.status(500).json({
             EC: -1,
-            EM: "Internal Server Error",
+            EM: "Lỗi server",
             DT: {}
-
         });
     }
 
@@ -81,11 +80,11 @@ export const parentSignIn = async (req, res) => {
             })
         }
 
-        const existUser = await db.User.findOne({ 
-            where: { 
+        const existUser = await db.User.findOne({
+            where: {
                 email,
                 role: "PARENT"
-            } 
+            }
         })
 
         if (!existUser) {
@@ -114,8 +113,8 @@ export const parentSignIn = async (req, res) => {
         };
         const secretKey = process.env.ACCESS_TOKEN_SECRET;
         const ACCESS_TOKEN_TTL = "30m";
-        
-        const accessToken = jwt.sign(payload, secretKey, {expiresIn: ACCESS_TOKEN_TTL,});
+
+        const accessToken = jwt.sign(payload, secretKey, { expiresIn: ACCESS_TOKEN_TTL, });
 
         // Tạo refresh token
         const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000;
@@ -139,12 +138,12 @@ export const parentSignIn = async (req, res) => {
             sameSite: "none",
             maxAge: REFRESH_TOKEN_TTL
         })
-        
+
 
         return res.status(200).json({
             EC: 0,
             EM: "Đăng nhập thành công",
-            DT: {  
+            DT: {
                 id: existUser.id,
                 email: existUser.email,
                 role: existUser.role,
@@ -154,7 +153,7 @@ export const parentSignIn = async (req, res) => {
         })
 
     } catch (error) {
-        console.log("Lỗi khi đăng nhập", error);
+        console.log("Lỗi khi parent đăng nhập", error);
         return res.status(500).json({
             EC: -1,
             EM: "Internal Server Error",
@@ -181,8 +180,10 @@ export const parentSignOut = async (req, res) => {
         // tìm session còn hạn
         const sessions = await db.Session.findAll({
             where: {
-                expires_at: { [Op.gt]: new Date() // expires_at < Date.now()
-            }}
+                expires_at: {
+                    [Op.gt]: new Date() // expires_at < Date.now()
+                }
+            }
         })
 
         // dùng bcrypt so sánh
@@ -201,7 +202,7 @@ export const parentSignOut = async (req, res) => {
         if (matchedSession) {
             await matchedSession.destroy()
         }
-        
+
         // xóa cookie phía client
         res.clearCookie("refreshToken");
 
@@ -212,10 +213,70 @@ export const parentSignOut = async (req, res) => {
         });
 
     } catch (error) {
-        console.log("Lỗi khi sign out", error);
+        console.log("Lỗi khi parent sign out", error);
         return res.status(500).json({
             EC: -1,
             EM: "Internal Server Error",
+            DT: {}
+        })
+    }
+}
+
+export const refreshToken = async (req, res) => {
+    try {
+        // lấy refresh token từ cookie
+        const token = req.cookies?.refreshToken;
+
+        if (!token) {
+            return res.status(401).json({
+                EC: -1,
+                EM: "Token không tồn tại",
+                DT: {}
+            })
+        }
+        // so sánh với refresh token trong db
+
+        const session = await db.Session.findOne({
+            where: {
+                refresh_token_hash: token
+            }
+        })
+
+        if (!session) {
+            return res.status(403).json({
+                EC: -1,
+                EM: "Token không hợp lệ hoặc đã hết hạn",
+                DT: {}
+            })
+        }
+        // kiểm tra hết hạn chưa
+        if (session.expires_at < new Date.now()) {
+            return res.status(403).json({
+                EC: -1,
+                EM: "Token không hợp lệ hoặc đã hết hạn",
+                DT: {}
+            })
+        }
+
+        // tạo access token mới
+        const payload = {
+            user_id: session.user_id,
+        };
+        const secretKey = process.env.ACCESS_TOKEN_SECRET;
+        const ACCESS_TOKEN_TTL = "30m";
+
+        const accessToken = jwt.sign(payload, secretKey, { expiresIn: ACCESS_TOKEN_TTL });
+
+        return res.status(200).json({
+            EC: 0,
+            EM: "",
+            DT: accessToken
+        })
+    } catch (error) {
+        console.log("Lỗi khi gọi refreshToken", error)
+        return res.status(500).json({
+            EC: -1,
+            EM: "Lỗi server",
             DT: {}
         })
     }
