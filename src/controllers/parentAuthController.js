@@ -234,13 +234,30 @@ export const refreshToken = async (req, res) => {
                 DT: {}
             })
         }
+
         // so sánh với refresh token trong db
 
-        const session = await db.Session.findOne({
+        // tìm session còn hạn
+        const sessions = await db.Session.findAll({
             where: {
-                refresh_token_hash: token
+                expires_at: {
+                    [Op.gt]: new Date() // expires_at < Date.now()
+                }
             }
         })
+
+        // dùng bcrypt so sánh
+        let session = null;
+        for (const s of sessions) {
+            // so sánh token ở cookie và token ở session trong db
+            const isMatch = await bcrypt.compare(token, s.refresh_token_hash);
+
+            if (isMatch) {
+                session = s;
+                break;
+            }
+        }
+
 
         if (!session) {
             return res.status(403).json({
@@ -250,7 +267,7 @@ export const refreshToken = async (req, res) => {
             })
         }
         // kiểm tra hết hạn chưa
-        if (session.expires_at < new Date.now()) {
+        if (session.expires_at < new Date()) {
             return res.status(403).json({
                 EC: -1,
                 EM: "Token không hợp lệ hoặc đã hết hạn",
@@ -260,7 +277,7 @@ export const refreshToken = async (req, res) => {
 
         // tạo access token mới
         const payload = {
-            user_id: session.user_id,
+            id: session.user_id,
         };
         const secretKey = process.env.ACCESS_TOKEN_SECRET;
         const ACCESS_TOKEN_TTL = "30m";

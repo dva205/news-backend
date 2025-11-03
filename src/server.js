@@ -7,6 +7,7 @@ import cors from 'cors';
 import parentAuthRoute from './routes/parentAuthRoute.js';
 import parentRoute from './routes/parentRoute.js';
 import childAuthRoute from './routes/childAuthRoute.js';
+import getAccount from './routes/getAccount.js';
 
 import { requireAuth } from './middlewares/requireAuth.js';
 import { requireParent } from './middlewares/requireParent.js';
@@ -37,7 +38,7 @@ app.use('/parent/auth', parentAuthRoute)
 // private routes
 app.use('/parent/child', requireAuth, requireParent, parentRoute);
 app.use('/child/auth', childAuthRoute)
-
+app.use('/account', getAccount)
 
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`)
