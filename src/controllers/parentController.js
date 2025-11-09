@@ -5,7 +5,7 @@ import crypto from "crypto";
 export const createAccountWithInviteLink = async (req, res) => {
     try {
         // create account
-        const parentId = req.user.id;
+        const parentId = req?.user.id;
 
         const { username, firstName, lastName, dob, gender } = req.body;
 
@@ -80,3 +80,126 @@ export const createAccountWithInviteLink = async (req, res) => {
         });
     }
 }
+
+export const getAllChild = async (req, res) => {
+    try {
+        // lấy id của parent
+        const parentId = req?.user.id;
+
+
+        // tìm trong db thằng con có parent id = parentId
+        const children = await db.User.findAll({
+            where: {
+                parent_id: parentId,
+                role: 'CHILD'
+            }
+        })
+
+
+        if (!children || children.length === 0) {
+            return res.status(404).json({
+                EC: -1,
+                EM: "You do not create any child account yet",
+                DT: {}
+            })
+        }
+
+        return res.status(200).json({
+            EC: 0,
+            EM: `You have ${children.length} ${children.length === 1 ? "child" : "children"}`,
+            DT: { children }
+        })
+    } catch (error) {
+        console.log("Lỗi khi xem tài khoản con", error)
+        return res.status(500).json({
+            EC: -1,
+            EM: 'Server error',
+            DT: {}
+        })
+    }
+}
+
+export const updateChildAccount = async (req, res) => {
+    try {
+        const childId = req.params.id;
+        const parentId = req?.user?.id;
+
+        if (!childId) {
+            return res.status(400).json({
+                EC: -1,
+                EM: "Bạn cần chọn tài khoản con nào cần update",
+                DT: {}
+            })
+        }
+
+        if (!parentId) {
+            return res.status(401).json({
+                EC: -1,
+                EM: "Unauthorized",
+                DT: {}
+            })
+        }
+
+        // tìm trong db thằng con có parent_id = parentId, id = id ở param
+        const child = await db.User.findOne({
+            where: {
+                parent_id: parentId,
+                id: childId,
+                role: 'CHILD'
+            }
+        })
+
+        if (!child) {
+            return res.status(404).json({
+                EC: -1,
+                EM: "Bạn chưa có tài khoản con nào để update",
+                DT: {}
+            })
+        }
+
+        let { firstName, lastName, dob, gender } = req.body;
+
+        if (!firstName || !lastName) {
+            return res.status(400).json({
+                EC: -1,
+                EM: "firstName và lastName không được để trống",
+                DT: {}
+            })
+        }
+
+        // update thằng con có childId = id ở db
+        await child.update({
+            first_name: firstName,
+            last_name: lastName,
+            display_name: `${firstName} ${lastName}`,
+            dob,
+            gender
+        })
+
+        return res.status(200).json({
+            EC: 0,
+            EM: "Cập nhật tài khoản con thành công",
+            DT: {
+                child
+            }
+        })
+
+    } catch (error) {
+        console.log("Lỗi khi update tài khoản con", error)
+        return res.status(500).json({
+            EC: -1,
+            EM: "Server error",
+            DT: {}
+        })
+    }
+}
+
+// TODO IF HAVE TIME
+// export const deleteChildAccount = (req, res) => {
+//     try {
+
+//     } catch (error) {
+//         console.log("Lỗi khi xóa tài khoản con", error)
+//     }
+// }
+
