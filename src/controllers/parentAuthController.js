@@ -230,7 +230,7 @@ export const refreshToken = async (req, res) => {
         if (!token) {
             return res.status(401).json({
                 EC: -1,
-                EM: "Token không tồn tại",
+                EM: "Refresh Token không tồn tại",
                 DT: {}
             })
         }
@@ -262,7 +262,7 @@ export const refreshToken = async (req, res) => {
         if (!session) {
             return res.status(403).json({
                 EC: -1,
-                EM: "Token không hợp lệ hoặc đã hết hạn",
+                EM: "Refresh Token không hợp lệ hoặc đã hết hạn",
                 DT: {}
             })
         }
@@ -270,7 +270,7 @@ export const refreshToken = async (req, res) => {
         if (session.expires_at < new Date()) {
             return res.status(403).json({
                 EC: -1,
-                EM: "Token không hợp lệ hoặc đã hết hạn",
+                EM: "Refresh Token không hợp lệ hoặc đã hết hạn",
                 DT: {}
             })
         }

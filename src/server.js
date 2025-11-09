@@ -34,10 +34,10 @@ connectDB();
 
 // public routes
 app.use('/parent/auth', parentAuthRoute)
+app.use('/child/auth', childAuthRoute)
 
 // private routes
 app.use('/parent/child', requireAuth, requireParent, parentRoute);
-app.use('/child/auth', childAuthRoute)
 app.use('/account', getAccount)
 
 app.listen(PORT, () => {
