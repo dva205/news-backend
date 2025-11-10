@@ -24,7 +24,7 @@ module.exports = (sequelize, DataTypes) => {
                 onUpdate: 'CASCADE',
             },
 
-            refresh_token_hash: {
+            refresh_token: {
                 type: DataTypes.STRING(255),
                 unique: true,
                 allowNull: false,

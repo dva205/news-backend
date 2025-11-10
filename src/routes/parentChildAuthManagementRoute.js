@@ -1,5 +1,5 @@
 import express from "express";
-import { createAccountWithInviteLink, getAllChild, updateChildAccount } from "../controllers/parentController.js";
+import { createAccountWithInviteLink, getAllChild, updateChildAccount } from "../controllers/parentChildAuthManagement.js";
 
 
 const router = express.Router();

@@ -15,14 +15,14 @@ module.exports = {
         type: Sequelize.BIGINT.UNSIGNED,
         allowNull: false,
         references: {
-          model: 'users', 
+          model: 'users',
           key: 'id',
         },
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       },
 
-      refresh_token_hash: {  
+      refresh_token: {
         type: Sequelize.STRING(255),
         unique: true,
         allowNull: false,

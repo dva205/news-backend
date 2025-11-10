@@ -1,18 +1,20 @@
+import 'dotenv/config';
 import express from 'express';
-import * as dotenv from 'dotenv';
 import connectDB from './config/connectDB.js';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 
 import parentAuthRoute from './routes/parentAuthRoute.js';
-import parentRoute from './routes/parentRoute.js';
+import parentChildAuthManagementRoute from './routes/parentChildAuthManagementRoute.js';
 import childAuthRoute from './routes/childAuthRoute.js';
 import getAccount from './routes/getAccount.js';
 
 import { requireAuth } from './middlewares/requireAuth.js';
 import { requireParent } from './middlewares/requireParent.js';
 
-dotenv.config();
+import { cronArticle } from './cron/cronArticle.js';
+
+
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -32,14 +34,17 @@ app.use(
 // connectDB 
 connectDB();
 
+// run cron-job
+cronArticle();
+
 // public routes
 app.use('/parent/auth', parentAuthRoute)
 app.use('/child/auth', childAuthRoute)
 
 // private routes
-app.use('/parent/child', requireAuth, requireParent, parentRoute);
+app.use('/parent/child', requireAuth, requireParent, parentChildAuthManagementRoute);
 app.use('/account', getAccount)
 
 app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`)
+  console.log(`Server listening on port ${PORT}`);
 })

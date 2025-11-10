@@ -1,7 +1,5 @@
 import jwt from "jsonwebtoken";
-import * as dotenv from "dotenv";
 import db from "../models/index.js";
-dotenv.config();
 
 export const requireAuth = (req, res, next) => {
     try {
