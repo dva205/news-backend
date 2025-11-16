@@ -3,7 +3,7 @@ import { validateInviteCode, signInChild, signOutChild, refreshChildToken, activ
 
 export const validateInvite = async (req, res) => {
     try {
-        const code = req.query.code;
+        const code = req.query?.code;
 
         if (!code) {
             return res.status(400).json({

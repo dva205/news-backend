@@ -5,7 +5,7 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 
 import parentAuthRoute from './routes/parentAuthRoute.js';
-import parentChildAuthManagementRoute from './routes/parentChildAuthManagementRoute.js';
+import parentChildManagementRoute from './routes/parentChildManagementRoute.js';
 import childAuthRoute from './routes/childAuthRoute.js';
 import getAccount from './routes/getAccount.js';
 
@@ -35,14 +35,14 @@ app.use(
 connectDB();
 
 // run cron-job
-cronArticle();
+// cronArticle();
 
 // public routes
 app.use('/parent/auth', parentAuthRoute)
 app.use('/child/auth', childAuthRoute)
 
 // private routes
-app.use('/parent/child', requireAuth, requireParent, parentChildAuthManagementRoute);
+app.use('/parent/child', requireAuth, requireParent, parentChildManagementRoute);
 app.use('/account', getAccount)
 
 app.listen(PORT, () => {

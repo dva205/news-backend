@@ -21,9 +21,15 @@ module.exports = {
                 allowNull: false,
             },
 
-            category: {
-                type: Sequelize.TEXT,
-                allowNull: false,
+            category_id: {
+                type: Sequelize.BIGINT.UNSIGNED,
+                allowNull: true,
+                references: {
+                    model: 'categories',
+                    key: 'id'
+                },
+                onDelete: 'SET NULL',
+                onUpdate: 'CASCADE'
             },
 
             source_url: {
@@ -38,8 +44,9 @@ module.exports = {
             },
 
             age_bucket: {
-                type: Sequelize.STRING,
+                type: Sequelize.ENUM('6-10', '11-15', '16-18', 'ALL'),
                 allowNull: false,
+                defaultValue: 'ALL'
             },
 
             published_at: {

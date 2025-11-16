@@ -1,4 +1,4 @@
-import { createChildAccount, getAllChildren, updateChild } from '../services/parentChildAuthManagementService.js';
+import { createChildAccount, getAllChildren, setStrict, updateChild } from '../services/parentChildManagementService.js';
 
 
 export const createAccountWithInviteLink = async (req, res) => {
@@ -115,5 +115,37 @@ export const updateChildAccount = async (req, res) => {
     }
 }
 
+
+export const setChildStrict = async (req, res) => {
+    try {
+        const childId = req.params.id;
+        const parentId = req.user.id;
+        const { timeLimit, blockedKeyword, blockedCategory, blockedFeature } = req.body;
+
+
+        if (!childId) {
+            return res.status(400).json({ EC: -1, EM: "Thiếu ID của con", DT: {} });
+        }
+
+        if (!parentId) {
+            return res.status(401).json({ EC: -1, EM: "Unauthorized", DT: {} });
+        }
+
+        const data = await setStrict(childId, parentId, timeLimit, blockedKeyword, blockedCategory, blockedFeature);
+
+        return res.status(200).json({
+            EM: "Cập nhật tài khoản các giới hạn cho con thành công",
+            DT: data
+        });
+    } catch (error) {
+        console.log("Lỗi khi update các giới hạn cho con", error);
+        return res.status(error.statusCode || 500).json({
+            EM: error.message || "Lỗi server",
+            DT: {}
+        });
+    }
+}
+
 // TODO:
 // export const deleteChildAccount = (req, res) => { ... }
+

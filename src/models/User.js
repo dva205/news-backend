@@ -12,6 +12,33 @@ module.exports = (sequelize, DataTypes) => {
         as: 'parent',
         foreignKey: 'parent_id',
       });
+
+      User.hasOne(models.Strict, {
+        as: 'stricts',
+        foreignKey: 'child_id',
+      });
+
+      User.hasMany(models.Session, {
+        as: 'sessions',
+        foreignKey: 'user_id',
+      });
+
+      User.hasMany(models.Invite, {
+        as: 'sentInvites',
+        foreignKey: 'parent_id',
+      });
+
+
+      User.hasMany(models.Invite, {
+        as: 'receivedInvites',
+        foreignKey: 'child_id',
+      });
+
+      User.belongsToMany(models.Article, {
+        through: models.UserArticle,
+        foreignKey: 'user_id',
+        as: 'articles'
+      });
     }
   }
 
@@ -21,31 +48,40 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING(100),
         allowNull: true,
         unique: true,
-        validate: { isEmail: true },
       },
+
       username: {
         type: DataTypes.STRING(100),
         allowNull: true,
         unique: true,
       },
+
       password_hashed: {
         type: DataTypes.STRING(255),
         allowNull: true,
       },
-      first_name: DataTypes.STRING(50),
-      last_name: DataTypes.STRING(50),
-      display_name: DataTypes.STRING(100),
+
+      first_name: {
+        type: DataTypes.STRING(50),
+        allowNull: true
+      },
+
+      last_name: {
+        type: DataTypes.STRING(50),
+        allowNull: true
+      },
+
+      display_name: {
+        type: DataTypes.STRING(100),
+        allowNull: true
+      },
+
       role: {
         type: DataTypes.ENUM('PARENT', 'CHILD', 'ADMIN'),
         allowNull: false,
         defaultValue: 'CHILD',
       },
-      dob: DataTypes.DATEONLY,
-      gender: {
-        type: DataTypes.ENUM('MALE', 'FEMALE', 'OTHER'),
-        allowNull: true,
-      },
-      avatar_url: DataTypes.STRING(255),
+
       parent_id: {
         type: DataTypes.BIGINT.UNSIGNED,
         allowNull: true,
@@ -56,6 +92,21 @@ module.exports = (sequelize, DataTypes) => {
         onDelete: 'SET NULL',
         onUpdate: 'CASCADE',
       },
+
+      dob: {
+        type: DataTypes.DATEONLY
+      },
+
+      gender: {
+        type: DataTypes.ENUM('MALE', 'FEMALE', 'OTHER'),
+        allowNull: true,
+      },
+
+      avatar_url: {
+        type: DataTypes.STRING(255),
+        allowNull: true
+      },
+
     },
     {
       sequelize,

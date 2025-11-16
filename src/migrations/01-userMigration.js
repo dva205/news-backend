@@ -62,7 +62,7 @@ module.exports = {
 
       dob: {
         type: Sequelize.DATEONLY,
-        allowNull: true,
+        allowNull: false,
       },
 
       gender: {

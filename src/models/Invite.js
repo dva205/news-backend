@@ -26,10 +26,22 @@ module.exports = (sequelize, DataTypes) => {
             parent_id: {
                 type: DataTypes.BIGINT.UNSIGNED,
                 allowNull: false,
+                references: {
+                    model: 'users',
+                    key: 'id',
+                },
+                onDelete: 'CASCADE',
+                onUpdate: 'CASCADE',
             },
             child_id: {
                 type: DataTypes.BIGINT.UNSIGNED,
-                allowNull: false,
+                allowNull: true,
+                references: {
+                    model: 'users',
+                    key: 'id',
+                },
+                onDelete: 'CASCADE',
+                onUpdate: 'CASCADE',
             },
             expires_at: {
                 type: DataTypes.DATE,

@@ -4,7 +4,16 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
     class Article extends Model {
         static associate(models) {
+            Article.belongsTo(models.Category, {
+                foreignKey: 'category_id',
+                as: 'category'
+            });
 
+            Article.belongsToMany(models.User, {
+                through: models.UserArticle,
+                foreignKey: 'article_id',
+                as: 'users'
+            });
         }
     }
 
@@ -20,9 +29,15 @@ module.exports = (sequelize, DataTypes) => {
                 allowNull: false,
             },
 
-            category: {
-                type: DataTypes.TEXT,
+            category_id: {
+                type: DataTypes.BIGINT.UNSIGNED,
                 allowNull: false,
+                references: {
+                    model: 'categories',
+                    key: 'id'
+                },
+                onDelete: 'SET NULL',
+                onUpdate: 'CASCADE'
             },
 
             source_url: {
@@ -37,8 +52,9 @@ module.exports = (sequelize, DataTypes) => {
             },
 
             age_bucket: {
-                type: DataTypes.STRING,
+                type: DataTypes.ENUM('6-10', '11-15', '16-18', 'ALL'),
                 allowNull: false,
+                defaultValue: 'ALL'
             },
 
             published_at: {

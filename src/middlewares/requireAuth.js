@@ -9,7 +9,6 @@ export const requireAuth = (req, res, next) => {
         // 2. Kiểm tra có header không, và có đúng định dạng "Bearer <token>" không
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
             return res.status(401).json({
-                EC: -1,
                 EM: "Thiếu Authorization header hoặc token không hợp lệ",
                 DT: {}
             });
@@ -23,7 +22,6 @@ export const requireAuth = (req, res, next) => {
                 console.log("JWT verify error:", err);
 
                 return res.status(401).json({
-                    EC: -1,
                     EM: "Access Token hết hạn hoặc không đúng",
                     DT: {}
                 });
@@ -39,7 +37,6 @@ export const requireAuth = (req, res, next) => {
 
             if (!user) {
                 return res.status(404).json({
-                    EC: -1,
                     EM: "Người dùng không tồn tại",
                     DT: {}
                 });

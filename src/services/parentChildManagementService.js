@@ -103,3 +103,47 @@ export const updateChild = async (parentId, childId, updateData) => {
     // 3. Trả về thông tin đã cập nhật
     return { child };
 }
+
+export const setStrict = async (childId, parentId, timeLimit, blockedKeyword, blockedCategory, blockedFeature) => {
+    // tìm con
+    const child = await db.User.findOne({
+        where: {
+            id: childId,
+            parent_id: parentId
+        }
+    })
+
+    if (!child) {
+        throw new ApiError("Không tìm thấy tài khoản con hoặc bạn không có quyền sửa", 403)
+    }
+
+    // tìm strict để update nếu ko có thì create
+    let [strictRecord, created] = await db.Strict.findOrCreate({
+        where: {
+            child_id: childId
+        },
+        defaults: {
+            time_limit_minutes: timeLimit,
+            blocked_keyword: blockedKeyword,
+            blocked_category: blockedCategory,
+            blocked_feature: blockedFeature
+        }
+    })
+
+    console.log(strictRecord);
+    console.log('>>>>>>>>>>check created', created)
+
+
+    // nếu ko create thì update
+    if (!created) {
+        strictRecord = await strictRecord.update({
+            time_limit_minutes: timeLimit,
+            blocked_keyword: blockedKeyword,
+            blocked_category: blockedCategory,
+            blocked_feature: blockedFeature
+        })
+    }
+
+    return strictRecord;
+}
+

@@ -48,8 +48,8 @@ export const parentSignIn = async (req, res) => {
         // 3. Đặt Cookie 
         res.cookie('refreshToken', data.refreshToken, {
             httpOnly: true,
-            // secure: true, 
-            sameSite: "none",
+            secure: false,
+            sameSite: "lax",
             maxAge: data.REFRESH_TOKEN_TTL
         });
 
@@ -57,7 +57,6 @@ export const parentSignIn = async (req, res) => {
         return res.status(200).json({
             EM: "Đăng nhập thành công",
             DT: {
-                ...data.user,
                 accessToken: data.accessToken
             }
         });
