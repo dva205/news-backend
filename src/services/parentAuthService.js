@@ -138,3 +138,44 @@ export const refreshParentToken = async (refreshToken) => {
 
     return { accessToken };
 }
+
+export const updateParentProfile = async (parentId, firstName, lastName, email, avatarUrl) => {
+    const parent = await db.User.findOne({
+        where: {
+            id: parentId,
+            role: 'PARENT'
+        }
+    })
+
+    if (!parent) {
+        throw new ApiError("Không tìm thấy tài khoản phụ huynh hoặc bạn không có quyền sửa", 404);
+    }
+
+    // Prepare update data
+    const updateData = {
+        first_name: firstName,
+        last_name: lastName,
+        display_name: `${firstName} ${lastName}`,
+        email
+    };
+
+    // Chỉ update avatar_url nếu có upload file mới
+    if (avatarUrl) {
+        updateData.avatar_url = avatarUrl;
+    }
+
+    await parent.update(updateData);
+
+    // 3. Trả về thông tin đã cập nhật
+    return { 
+        parent: {
+            id: parent.id,
+            email: parent.email,
+            first_name: parent.first_name,
+            last_name: parent.last_name,
+            display_name: parent.display_name,
+            avatar_url: parent.avatar_url,
+            role: parent.role
+        }
+    };
+}

@@ -31,21 +31,32 @@ export const downloadArticle = async (fileName) => {
 export const upsertArticleToDB = async (articleData) => {
     try {
 
+        const [category, categoryCreated] = await db.Category.findOrCreate({
+            where: { name: articleData.category },
+            defaults: {
+                name: articleData.category,
+            },
+        });
+
+        if (categoryCreated) {
+            console.log(` ${category.name}`)
+        }
+
         const [record, created] = await db.Article.upsert({
             title: articleData.title,
             content: articleData.content,
-            category: articleData.category,
+            category_id: category.id,
             source_url: articleData.source_url,
             image_url: articleData.image_url,
             age_bucket: articleData.age_bucket,
             published_at: articleData.published_at,
         });
 
-        if (created) {
-            console.log(`INSERT thành công: ${record.length}`);
-        } else {
-            console.log(`UPDATE thành công: ${record.source_url}`);
-        }
+        // if (created) {
+        //     console.log(`INSERT thành công: ${record.length}`);
+        // } else {
+        //     console.log(`UPDATE thành công: ${record.source_url}`);
+        // }
 
         return record;
 

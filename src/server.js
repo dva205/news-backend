@@ -3,18 +3,26 @@ import express from 'express';
 import connectDB from './config/connectDB.js';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 import parentAuthRoute from './routes/parentAuthRoute.js';
 import parentChildManagementRoute from './routes/parentChildManagementRoute.js';
 import childAuthRoute from './routes/childAuthRoute.js';
+import childArticleRoute from './routes/childArticleRoute.js';
+import publicArticleRoute from './routes/publicArticleRoute.js';
 import getAccount from './routes/getAccount.js';
+import childActivityRoute from './routes/childActivityRoute.js'
 
 import { requireAuth } from './middlewares/requireAuth.js';
 import { requireParent } from './middlewares/requireParent.js';
 
 import { cronArticle } from './cron/cronArticle.js';
+import { requireChild } from './middlewares/requireChild.js';
 
-
+// Get __dirname in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -31,6 +39,9 @@ app.use(
   }),
 );
 
+// Serve static files (avatars) - URL: http://localhost:5000/image/filename.jpg
+app.use('/image', express.static(path.join(__dirname, '../image')));
+
 // connectDB 
 connectDB();
 
@@ -40,9 +51,12 @@ connectDB();
 // public routes
 app.use('/parent/auth', parentAuthRoute)
 app.use('/child/auth', childAuthRoute)
+app.use('/public', publicArticleRoute)
 
 // private routes
 app.use('/parent/child', requireAuth, requireParent, parentChildManagementRoute);
+app.use('/child/articles', childArticleRoute);
+app.use('/child/activity', requireAuth, requireChild, childActivityRoute)
 app.use('/account', getAccount)
 
 app.listen(PORT, () => {

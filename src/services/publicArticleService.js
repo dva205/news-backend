@@ -1,58 +1,63 @@
 import { Op } from "sequelize";
-import db from "../models";
-import { ApiError } from "../utils/ApiError";
+import db from "../models/index.js";
+import { ApiError } from "../utils/ApiError.js";
 
+/**
+ * Get all categories 
+ */
 export const fetchAllCategories = async () => {
+    const categories = await db.Category.findAll({
+        attributes: ['name'],
+        order: [['name', 'ASC']]
+    });
 
-    const allCategories = await db.Article.aggregate('category', 'DISTINCT', { plain: false })
-
-    if (!allCategories || allCategories.length == 0) {
-        throw new ApiError("Không có mục nào để hiển thị", 404)
+    if (!categories || categories.length === 0) {
+        throw new ApiError("Không có category nào", 404);
     }
-
-    const categories = allCategories.map(item => item.DISTINCT);
 
     return categories;
-}
+};
 
-export const fetchNews = async (page, limit, search, category) => {
+/**
+ * Get articles with pagination, search, category filter 
+ */
+export const fetchNews = async (page, limit, search, categoryName) => {
     const offset = (page - 1) * limit;
 
-    let whereClause = {};
+    // Build where conditions
+    const whereConditions = {};
 
+    // Search in title and content
     if (search) {
-        whereClause[Op.or] = [
-            {
-                title: {
-                    [Op.like]: `%${search}%`
-                }
-            },
-            {
-                content: {
-                    [Op.like]: `%${search}%`
-                }
-            }
-        ]
+        whereConditions[Op.or] = [
+            { title: { [Op.like]: `%${search}%` } },
+            { content: { [Op.like]: `%${search}%` } }
+        ];
     }
 
-    if (category) {
-        whereClause.category = category;
+    // Include conditions for category join
+    const includeConditions = {
+        model: db.Category,
+        as: 'category',
+        attributes: ['name']
+    };
+
+    // Filter by category name if provided
+    if (categoryName) {
+        includeConditions.where = { name: categoryName };
+        includeConditions.required = true; // INNER JOIN
     }
 
     const { count, rows } = await db.Article.findAndCountAll({
-        where: whereClause,
-        order: [
-            ['published_at', 'DESC'] // Sắp xếp mới nhất lên đầu
-        ],
+        where: whereConditions,
+        include: [includeConditions],
+        order: [['published_at', 'DESC']],
         offset,
         limit,
-        attributes: {
-            exclude: ['content']
-        }
+        distinct: true // Important for correct count with joins
     });
 
-
-    const totalPages = Math.ceil(count / limit)
+    const totalPages = Math.ceil(count / limit);
 
     return {
         articles: rows,
@@ -62,6 +67,25 @@ export const fetchNews = async (page, limit, search, category) => {
             currentPage: page,
             limit
         }
-    }
-}
+    };
+};
 
+/**
+ * Get single article by ID (public)
+ */
+export const fetchArticleById = async (articleId) => {
+    const article = await db.Article.findOne({
+        where: { id: articleId },
+        include: [{
+            model: db.Category,
+            as: 'category',
+            attributes: ['name']
+        }]
+    });
+
+    if (!article) {
+        throw new ApiError("Không tìm thấy bài báo", 404);
+    }
+
+    return article;
+};

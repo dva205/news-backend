@@ -1,4 +1,4 @@
-import { signUpParent, signInParent, signOutParent, refreshParentToken } from '../services/parentAuthService.js';
+import { signUpParent, signInParent, signOutParent, refreshParentToken, updateParentProfile } from '../services/parentAuthService.js';
 
 export const parentSignUp = async (req, res) => {
     try {
@@ -127,6 +127,59 @@ export const refreshToken = async (req, res) => {
 
     } catch (error) {
         console.error("Lỗi khi gọi refreshToken", error);
+        return res.status(error.statusCode || 500).json({
+            EM: error.message || "Lỗi server",
+            DT: {}
+        });
+    }
+}
+
+export const updateProfile = async (req, res) => {
+    try {
+        const parentId = req.user.id;
+        const { firstName, lastName, email } = req.body;
+
+        // Validate: Check nếu có lỗi từ fileFilter
+        if (req.fileValidationError) {
+            return res.status(400).json({
+                EM: req.fileValidationError,
+                DT: {}
+            });
+        }
+
+        // Validate: Check auth
+        if (!parentId) {
+            return res.status(401).json({
+                EM: "Unauthorized",
+                DT: {}
+            });
+        }
+
+        // Validate: Check required fields
+        if (!firstName || !lastName || !email) {
+            return res.status(400).json({
+                EM: "FirstName, lastName, email không được để trống",
+                DT: {}
+            });
+        }
+
+        // Xử lý avatar URL nếu có file upload
+        let avatarUrl = null;
+        if (req.file) {
+            // URL: http://localhost:5000/image/avatar-5-1234567890.jpg
+            avatarUrl = `http://localhost:5000/image/${req.file.filename}`;
+        }
+
+        // Gọi service để update
+        const data = await updateParentProfile(parentId, firstName, lastName, email, avatarUrl);
+
+        return res.status(200).json({
+            EM: "Cập nhật thông tin thành công",
+            DT: data
+        });
+
+    } catch (error) {
+        console.error("Lỗi khi update parent profile", error);
         return res.status(error.statusCode || 500).json({
             EM: error.message || "Lỗi server",
             DT: {}

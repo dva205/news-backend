@@ -1,10 +1,10 @@
-import { createChildAccount, getAllChildren, setStrict, updateChild } from '../services/parentChildManagementService.js';
+import { createChildAccount, getAllChildren, getTimeLimit, setStrict, updateChild } from '../services/parentChildManagementService.js';
 
 
 export const createAccountWithInviteLink = async (req, res) => {
     try {
         // 1. Lấy dữ liệu 
-        const parentId = req?.user.id;
+        const parentId = req.user.id;
         const { username, firstName, lastName, dob, gender } = req.body;
 
         // 2. Validate 
@@ -86,13 +86,22 @@ export const updateChildAccount = async (req, res) => {
 
         // 2. Validate 
         if (!childId) {
-            return res.status(400).json({ EC: -1, EM: "Thiếu ID của con", DT: {} });
+            return res.status(400).json({
+                EM: "Thiếu ID của con",
+                DT: {}
+            });
         }
         if (!parentId) {
-            return res.status(401).json({ EC: -1, EM: "Unauthorized", DT: {} });
+            return res.status(401).json({
+                EM: "Unauthorized",
+                DT: {}
+            });
         }
         if (!firstName || !lastName) {
-            return res.status(400).json({ EC: -1, EM: "firstName và lastName không được để trống", DT: {} });
+            return res.status(400).json({
+                EM: "firstName và lastName không được để trống",
+                DT: {}
+            });
         }
 
         // 3. Gọi Service
@@ -124,17 +133,58 @@ export const setChildStrict = async (req, res) => {
 
 
         if (!childId) {
-            return res.status(400).json({ EC: -1, EM: "Thiếu ID của con", DT: {} });
+            return res.status(400).json({
+                EM: "Thiếu ID của con",
+                DT: {}
+            });
         }
 
         if (!parentId) {
-            return res.status(401).json({ EC: -1, EM: "Unauthorized", DT: {} });
+            return res.status(401).json({
+                EM: "Unauthorized",
+                DT: {}
+            });
         }
 
         const data = await setStrict(childId, parentId, timeLimit, blockedKeyword, blockedCategory, blockedFeature);
 
         return res.status(200).json({
             EM: "Cập nhật tài khoản các giới hạn cho con thành công",
+            DT: data
+        });
+    } catch (error) {
+        console.log("Lỗi khi update các giới hạn cho con", error);
+        return res.status(error.statusCode || 500).json({
+            EM: error.message || "Lỗi server",
+            DT: {}
+        });
+    }
+}
+
+export const getChildActivity = async (req, res) => {
+    try {
+        const childId = req.params.id;
+        const parentId = req.user.id;
+        const { timeRange } = req.body;
+
+        if (!childId) {
+            return res.status(404).json({
+                EM: "Thiếu ID của con",
+                DT: {}
+            })
+        }
+
+        if (!parentId) {
+            return res.status(401).json({
+                EM: "Unauthorized",
+                DT: {}
+            });
+        }
+
+        const data = await getTimeLimit(childId, parentId, timeRange);
+
+        return res.status(200).json({
+            EM: "Xem hoạt động của con thành công",
             DT: data
         });
     } catch (error) {

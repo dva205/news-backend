@@ -114,6 +114,11 @@ export const signInChild = async (username, password) => {
         throw new ApiError("Username hoặc password không chính xác", 404);
     }
 
+    // Check if account is activated (has password)
+    if (!existChild.password_hashed) {
+        throw new ApiError("Tài khoản chưa được kích hoạt. Vui lòng kích hoạt tài khoản bằng mật khẩu mới.", 403);
+    }
+
     // 2. So sánh password
     const isCorrectPassword = await bcrypt.compare(password, existChild.password_hashed);
     if (!isCorrectPassword) {

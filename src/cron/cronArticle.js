@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { downloadArticle, listPendingArticles, upsertArticleToDB } from '../services/articlesProcessor';
+import { downloadArticle, listPendingArticles, upsertArticleToDB } from '../services/articlesProcessor.js';
 
 
 async function processArticle() {
@@ -17,6 +17,10 @@ async function processArticle() {
         return;
     }
 
+    files = files.filter(file => {
+        return !file.name.startsWith('.');
+    });
+
     console.log(`Tìm thấy ${files.length} files trong bucket`);
 
     // download + upsert file
@@ -26,9 +30,20 @@ async function processArticle() {
 
             const articleText = await articleBlob.text(); // text
 
+            if (!articleText || articleText.trim() === '') {
+                console.log(`File ${file.name} rỗng, bỏ qua`);
+                continue;
+            }
+
             const articleData = JSON.parse(articleText); // json
 
-            await upsertArticleToDB(articleData)
+            if (Array.isArray(articleData)) {
+                for (const article of articleData) {
+                    await upsertArticleToDB(article);
+                }
+            } else {
+                await upsertArticleToDB(articleData);
+            }
         } catch (error) {
             console.error(error)
         }

@@ -1,4 +1,4 @@
-const { Sequelize } = require('sequelize');
+import Sequelize from 'sequelize';
 
 
 // Option 3: Passing parameters separately (other dialects)

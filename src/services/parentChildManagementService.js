@@ -1,6 +1,7 @@
 import db from '../models/index.js';
 import crypto from "crypto";
 import { ApiError } from '../utils/ApiError.js';
+import { Op } from 'sequelize'
 
 
 export const createChildAccount = async (parentId, childData) => {
@@ -64,14 +65,34 @@ export const getAllChildren = async (parentId) => {
             parent_id: parentId,
             role: 'CHILD'
         },
-        attributes: { exclude: ['password_hashed'] }
+        attributes: { exclude: ['password_hashed'] },
+        include: [{
+            model: db.Invite,
+            as: 'receivedInvites',
+            attributes: ['code', 'used', 'expires_at'],
+            required: false
+        }]
     });
 
     if (!children || children.length === 0) {
         throw new ApiError("Bạn chưa tạo tài khoản con nào", 404);
     }
 
-    return { children };
+    // Format response to include invite code
+    const formattedChildren = children.map(child => {
+        const childData = child.toJSON();
+        const invite = childData.receivedInvites?.[0]; // Get first invite
+
+        return {
+            ...childData,
+            inviteCode: invite?.code || null,
+            inviteUsed: invite?.used || false,
+            inviteExpired: invite?.expires_at ? new Date(invite.expires_at) < new Date() : false,
+            receivedInvites: undefined
+        };
+    });
+
+    return { children: formattedChildren };
 }
 
 
@@ -130,9 +151,6 @@ export const setStrict = async (childId, parentId, timeLimit, blockedKeyword, bl
         }
     })
 
-    console.log(strictRecord);
-    console.log('>>>>>>>>>>check created', created)
-
 
     // nếu ko create thì update
     if (!created) {
@@ -147,3 +165,78 @@ export const setStrict = async (childId, parentId, timeLimit, blockedKeyword, bl
     return strictRecord;
 }
 
+export const getTimeLimit = async (childId, parentId, timeRange) => {
+    const child = await db.User.findOne({
+        where: {
+            id: childId,
+            parent_id: parentId
+        }
+    })
+
+    if (!child) {
+        throw new ApiError("Không tìm thấy tài khoản con hoặc bạn không có quyền sửa", 403)
+    }
+
+    // date range for chart
+    let startDate, endDate;
+    const today = new Date();
+
+    if (timeRange === 'today') {
+        startDate = endDate = today.toISOString().split('T')[0];
+    }
+
+    else if (timeRange === 'week') {
+        startDate = new Date(today);
+        startDate.setDate(today.getDate() - 7);
+        startDate = startDate.toISOString().split('T')[0];
+        endDate = today.toISOString().split('T')[0];
+    }
+
+    else if (timeRange === 'month') {
+        startDate = new Date(today);
+        startDate.setDate(today.getDate() - 30);
+        startDate = startDate.toISOString().split('T')[0];
+        endDate = today.toISOString().split('T')[0];
+    }
+
+    else {
+        throw new ApiError("Thời gian không hợp lệ", 404)
+    }
+
+    // Query và tính tổng theo ngày
+    const dailyStats = await db.UsageLog.findAll({
+        where: {
+            child_id: childId,
+            session_date: {
+                [Op.between]: [startDate, endDate] // tìm tất cả giữa start và end date
+            }
+        },
+        attributes: [
+            'session_date',
+            [db.sequelize.fn('SUM', db.sequelize.col('active_seconds')), 'total_seconds']
+        ],
+        group: ['session_date'],
+        order: [['session_date', 'ASC']],
+        raw: true
+    });
+
+    // format 
+    const stats = dailyStats.map(day => ({
+        date: day.session_date,
+        minutes: Math.floor(day.total_seconds / 60),
+        hours: (day.total_seconds / 3600).toFixed(2)
+    }));
+
+    const totalMinutes = dailyStats.reduce((sum, day) => sum + Math.floor(day.total_seconds / 60), 0)
+
+    // success
+    return {
+        child: {
+            id: child.id,
+            display_name: child.display_name
+        },
+        timeRange,
+        dailyStats: stats,
+        totalMinutes
+    };
+}
