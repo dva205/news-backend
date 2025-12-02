@@ -15,13 +15,13 @@ export const fetchAllCategories = async (childId) => {
     const strictRules = await getStrictRules(childId);
 
     // Query all categories
-    let categories = await db.Category.findAll({
+    const categories = await db.Category.findAll({
         attributes: ['name'],
         order: [['name', 'ASC']]
     });
 
     if (!categories || categories.length === 0) {
-        throw new ApiError("Không có category nào", 404);
+        throw new ApiError("Không có category nào", 204);
     }
 
     // Filter blocked categories if strict rules exist
@@ -90,19 +90,26 @@ export const fetchNews = async (childId, page, limit, search, categoryName) => {
         }
     }
 
+    // Include conditions for category join
+    const includeConditions = {
+        model: db.Category,
+        as: 'category',
+        attributes: ['name']
+    };
+
     // Query
     const { count, rows } = await db.Article.findAndCountAll({
         where: whereConditions,
-        include: [{
-            model: db.Category,
-            as: 'category',
-            attributes: ['name']
-        }],
+        include: [includeConditions],
         order: [['published_at', 'DESC']],
         offset,
         limit,
         distinct: true
     });
+
+    if (!rows || rows.length === 0) {
+        throw new ApiError("Không có bài báo nào", 204);
+    }
 
     const totalPages = Math.ceil(count / limit);
 
@@ -170,63 +177,117 @@ export const fetchArticleById = async (childId, articleId) => {
     return article;
 };
 
+export const fetchAllComment = async (articleId, page, limit) => {
+    const offset = (page - 1) * limit;
+    const { count, rows } = await db.Comment.findAndCountAll({
+        where: { article_id: articleId },
+        offset,
+        limit,
+        order: [['createdAt', 'DESC']],
+        include: [{
+            model: db.User, as: 'user', attributes: ['username', 'avatar_url']
+        }]
+    });
 
-/**
- * TODO: Implement time limit tracking properly
- * 
- * Requirements to enable this feature:
- * 1. Add migration: ALTER TABLE user_articles ADD COLUMN reading_time_seconds INT DEFAULT 0
- * 2. Update UserArticle model to include reading_time_seconds field
- * 3. Create API: POST /child/articles/:id/track-reading { readingTimeSeconds }
- * 4. Frontend: Track reading time and send to API periodically (every 30s or on page leave)
- * 
- * Current status: DISABLED - field reading_time_seconds doesn't exist in database
- */
-export const checkTimeLimit = async (childId) => {
-    // Temporarily return allowed=true until tracking is implemented
+    const totalPages = Math.ceil(count / limit);
+
     return {
-        allowed: true,
-        timeRemaining: null,
-        hasLimit: false,
-        timeLimit: null,
-        timeUsed: 0
-    };
+        comments: rows,
+        pagination: {
+            totalComment: count,
+            totalPages,
+            currentPage: page,
+            limit
+        }
+    }
+};
 
-    /* ORIGINAL IMPLEMENTATION - Requires reading_time_seconds field in user_articles table
-    
-    const strictRules = await getStrictRules(childId);
-
-    if (!strictRules || !strictRules.time_limit_minutes) {
-        return {
-            allowed: true,
-            timeRemaining: null,
-            hasLimit: false
-        };
+export const createComment = async (childId, articleId, content) => {
+    // check if article exist
+    const articleExists = await db.Article.findOne({ where: { id: articleId } })
+    if (!articleExists) {
+        throw new ApiError('Bài viết không tồn tại hoặc đã bị xóa', 404)
     }
 
-    // Get today's reading time
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    await db.Comment.create({
+        child_id: childId,
+        article_id: articleId,
+        content
+    });
 
-    const userArticles = await db.UserArticle.findAll({
+    return;
+};
+
+export const changeStatusSave = async (childId, articleId) => {
+    const existArticle = await db.Article.findOne({
+        where: { id: articleId }
+    });
+
+    if (!existArticle) {
+        throw new ApiError('Không tìm thấy bài viết hoặc bài viết đã bị xóa', 400);
+    }
+
+    const isSaved = await db.SavedArticle.findOne({
         where: {
-            user_id: childId,
-            created_at: { [Op.gte]: today }
+            article_id: articleId,
+            child_id: childId
         }
     });
 
-    const totalMinutesUsed = userArticles.reduce((sum, ua) => {
-        return sum + (ua.reading_time_seconds || 0);
-    }, 0) / 60;
+    let status = ''
 
-    const remaining = strictRules.time_limit_minutes - totalMinutesUsed;
+    if (!isSaved) {
+        await db.SavedArticle.create({
+            article_id: articleId,
+            child_id: childId
+        })
+        status = 'Lưu bài báo thành công'
+    } else {
+        await isSaved.destroy();
+        status = 'Bỏ lưu thành công'
+    }
+
+    return status;
+}
+
+export const fetchSavedArticle = async (childId, page, limit) => {
+    const offset = (page - 1) * limit;
+
+
+    const { count, rows } = await db.SavedArticle.findAndCountAll({
+        where: { child_id: childId },
+        order: [['created_at', 'DESC']],
+        limit,
+        offset,
+        include: [{
+            model: db.Article,
+            as: 'article',
+            attributes: ['title', 'content', 'image_url', 'published_at'],
+            include: [{
+                model: db.Category,
+                as: 'category',
+                attributes: ['name']
+            }] // hiển thị ra card
+        }]
+    });
+
+    if (!rows || rows.length === 0) {
+        throw new ApiError("Không có bài báo nào", 204);
+    }
+
+    const totalPages = Math.ceil(count / limit);
 
     return {
-        allowed: remaining > 0,
-        hasLimit: true,
-        timeLimit: strictRules.time_limit_minutes,
-        timeUsed: Math.round(totalMinutesUsed),
-        timeRemaining: Math.max(0, Math.round(remaining))
-    };
-    */
-};
+        articles: rows,
+        pagination: {
+            totalArticles: count,
+            totalPages,
+            currentPage: page,
+            limit
+        }
+    }
+}
+
+
+
+

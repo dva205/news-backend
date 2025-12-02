@@ -46,13 +46,6 @@ export const getArticleById = async (req, res) => {
     try {
         const articleId = req.params.id;
 
-        if (!articleId) {
-            return res.status(400).json({
-                EM: "Thiếu ID bài báo",
-                DT: {}
-            });
-        }
-
         const article = await fetchArticleById(articleId);
 
         return res.status(200).json({

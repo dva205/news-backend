@@ -2,9 +2,7 @@ import { Op } from "sequelize";
 import db from "../models/index.js";
 import { ApiError } from "../utils/ApiError.js";
 
-/**
- * Get all categories 
- */
+// get all categories
 export const fetchAllCategories = async () => {
     const categories = await db.Category.findAll({
         attributes: ['name'],
@@ -18,9 +16,7 @@ export const fetchAllCategories = async () => {
     return categories;
 };
 
-/**
- * Get articles with pagination, search, category filter 
- */
+// get all articles
 export const fetchNews = async (page, limit, search, categoryName) => {
     const offset = (page - 1) * limit;
 
@@ -57,6 +53,10 @@ export const fetchNews = async (page, limit, search, categoryName) => {
         distinct: true // Important for correct count with joins
     });
 
+    if (!rows || rows.length === 0) {
+        throw new ApiError("Không có bài báo nào", 204);
+    }
+
     const totalPages = Math.ceil(count / limit);
 
     return {
@@ -70,9 +70,7 @@ export const fetchNews = async (page, limit, search, categoryName) => {
     };
 };
 
-/**
- * Get single article by ID (public)
- */
+// get 1 articles by id
 export const fetchArticleById = async (articleId) => {
     const article = await db.Article.findOne({
         where: { id: articleId },
@@ -84,7 +82,7 @@ export const fetchArticleById = async (articleId) => {
     });
 
     if (!article) {
-        throw new ApiError("Không tìm thấy bài báo", 404);
+        throw new ApiError("Không tìm thấy bài báo", 204);
     }
 
     return article;

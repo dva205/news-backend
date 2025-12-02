@@ -3,11 +3,12 @@ import { logTime } from "../services/childActivityService.js";
 export const logChildActivity = async (req, res) => {
     try {
         const childId = req.user.id;
+        const { activeSeconds } = req.body;
 
-        const { activeSecond } = req.body;
+        const activeSecond = parseInt(activeSeconds);
 
         if (!activeSecond || activeSecond < 0) {
-            return res.status(404).json({
+            return res.status(400).json({
                 EM: "Số thời gian hoạt động không hợp lệ",
                 DT: {}
             });

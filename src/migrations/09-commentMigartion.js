@@ -3,53 +3,37 @@
 
 module.exports = {
     async up(queryInterface, Sequelize) {
-        await queryInterface.createTable('user_articles', {
-            user_id: {
-                type: Sequelize.BIGINT.UNSIGNED,
+        await queryInterface.createTable('comments', {
+            id: {
+                allowNull: false,
+                autoIncrement: true,
                 primaryKey: true,
+                type: Sequelize.BIGINT.UNSIGNED
+            },
+            child_id: {
+                type: Sequelize.BIGINT.UNSIGNED,
                 allowNull: false,
                 references: {
                     model: 'users',
                     key: 'id',
                 },
                 onDelete: 'CASCADE',
+                onUpdate: 'CASCADE',
             },
-
             article_id: {
                 type: Sequelize.BIGINT.UNSIGNED,
-                primaryKey: true,
                 allowNull: false,
                 references: {
                     model: 'articles',
                     key: 'id',
                 },
                 onDelete: 'CASCADE',
+                onUpdate: 'CASCADE',
             },
-
-            is_bookmarked: {
-                type: Sequelize.BOOLEAN,
+            content: {
+                type: Sequelize.TEXT,
                 allowNull: false,
-                defaultValue: false
             },
-
-            is_blocked: {
-                type: Sequelize.BOOLEAN,
-                allowNull: false,
-                defaultValue: false
-            },
-
-            is_read: {
-                type: Sequelize.BOOLEAN,
-                allowNull: false,
-                defaultValue: false
-            },
-
-            is_commented: {
-                type: Sequelize.BOOLEAN,
-                allowNull: false,
-                defaultValue: false
-            },
-
             created_at: {
                 type: Sequelize.DATE,
                 allowNull: false,
@@ -65,6 +49,6 @@ module.exports = {
     },
 
     async down(queryInterface, Sequelize) {
-        await queryInterface.dropTable('user_articles');
+        await queryInterface.dropTable('comments');
     },
 };

@@ -1,13 +1,3 @@
-getAccountController -> GET /api/users/me
+fe: validate dob, gender khi bố mẹ tạo tài khoản cho con
 
-Lấy thông tin tài khoản hiện tại (cần đăng nhập).
-
-PATCH /api/users/me
-
-Cập nhật thông tin cá nhân: tên, ảnh, mô tả, v.v.
-
-GET /api/users/:id
-
-Xem thông tin công khai của một người dùng khác (phóng viên, tác giả,…).
-
-
+cache phần báo

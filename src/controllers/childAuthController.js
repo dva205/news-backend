@@ -108,6 +108,13 @@ export const childSignOut = async (req, res) => {
         // 1. Lấy token
         const refreshToken = req.cookies?.refreshToken;
 
+        if (!refreshToken) {
+            return res.status(404).json({
+                EM: "Thiếu refresh token",
+                DT: {}
+            });
+        }
+
         // 2. Gọi Service 
         await signOutChild(refreshToken);
 

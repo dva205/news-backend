@@ -24,7 +24,7 @@ export const createAccountWithInviteLink = async (req, res) => {
         // Service trả về { newChild, newInvite }
 
         // Tạo URL (
-        const inviteUrl = `http://localhost:5173/child/auth/signup?invite=${data.newInvite.code}`;
+        const inviteUrl = `http://localhost:5173/child/auth/invite?code=${data.newInvite.code}`;
 
         return res.status(200).json({
             EM: "Đăng kí cho con thành công",
@@ -131,6 +131,7 @@ export const setChildStrict = async (req, res) => {
         const parentId = req.user.id;
         const { timeLimit, blockedKeyword, blockedCategory, blockedFeature } = req.body;
 
+        const timeLimitMinute = parseInt(timeLimit);
 
         if (!childId) {
             return res.status(400).json({
@@ -146,7 +147,7 @@ export const setChildStrict = async (req, res) => {
             });
         }
 
-        const data = await setStrict(childId, parentId, timeLimit, blockedKeyword, blockedCategory, blockedFeature);
+        const data = await setStrict(childId, parentId, timeLimitMinute, blockedKeyword, blockedCategory, blockedFeature);
 
         return res.status(200).json({
             EM: "Cập nhật tài khoản các giới hạn cho con thành công",

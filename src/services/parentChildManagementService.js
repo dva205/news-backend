@@ -125,7 +125,7 @@ export const updateChild = async (parentId, childId, updateData) => {
     return { child };
 }
 
-export const setStrict = async (childId, parentId, timeLimit, blockedKeyword, blockedCategory, blockedFeature) => {
+export const setStrict = async (childId, parentId, timeLimitMinute, blockedKeyword, blockedCategory, blockedFeature) => {
     // tìm con
     const child = await db.User.findOne({
         where: {
@@ -144,7 +144,7 @@ export const setStrict = async (childId, parentId, timeLimit, blockedKeyword, bl
             child_id: childId
         },
         defaults: {
-            time_limit_minutes: timeLimit,
+            time_limit_minutes: timeLimitMinute,
             blocked_keyword: blockedKeyword,
             blocked_category: blockedCategory,
             blocked_feature: blockedFeature
@@ -155,7 +155,7 @@ export const setStrict = async (childId, parentId, timeLimit, blockedKeyword, bl
     // nếu ko create thì update
     if (!created) {
         strictRecord = await strictRecord.update({
-            time_limit_minutes: timeLimit,
+            time_limit_minutes: timeLimitMinute,
             blocked_keyword: blockedKeyword,
             blocked_category: blockedCategory,
             blocked_feature: blockedFeature

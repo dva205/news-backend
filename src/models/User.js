@@ -34,10 +34,14 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'child_id',
       });
 
-      User.belongsToMany(models.Article, {
-        through: models.UserArticle,
-        foreignKey: 'user_id',
-        as: 'articles'
+      User.hasMany(models.Comment, {
+        as: 'comments',
+        foreignKey: 'child_id',
+      });
+
+      User.hasMany(models.SavedArticle, {
+        as: 'savedArticles',
+        foreignKey: 'child_id',
       });
     }
   }

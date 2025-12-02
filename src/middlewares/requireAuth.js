@@ -52,7 +52,6 @@ export const requireAuth = (req, res, next) => {
     } catch (error) {
         console.log("Lỗi khi authorization", error);
         return res.status(500).json({
-            EC: -1,
             EM: "Lỗi server",
             DT: {}
         });
