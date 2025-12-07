@@ -1,4 +1,5 @@
 import { signUpParent, signInParent, signOutParent, refreshParentToken, updateParentProfile } from '../services/parentAuthService.js';
+import { sendSuccess, sendError } from '../utils/ApiResponse.js';
 
 export const parentSignUp = async (req, res) => {
     try {
@@ -6,27 +7,21 @@ export const parentSignUp = async (req, res) => {
 
         // 1. Validate 
         if (!email || !password || !firstName || !lastName) {
-            return res.status(400).json({
-                EM: "Email, password, firstName, lastName không được để trống",
-                DT: {}
+            return sendError(res, {
+                statusCode: 400,
+                message: "Tất cả các trường không được để trống"
             });
         }
 
         // 2. Gọi Service 
-        const newUser = await signUpParent(email, password, firstName, lastName);
+        await signUpParent(email, password, firstName, lastName);
 
         // 3. Trả Response 
-        return res.status(200).json({
-            EM: "Đăng kí thành công",
-            DT: newUser
-        });
+        return sendSuccess(res, null, "Đăng kí thành công", 201);
 
     } catch (error) {
         console.error("Lỗi khi tạo tài khoản cho bố mẹ", error);
-        return res.status(error.statusCode || 500).json({
-            EM: error.message || "Lỗi server",
-            DT: {}
-        });
+        return sendError(res, error);
     }
 }
 
@@ -36,10 +31,10 @@ export const parentSignIn = async (req, res) => {
 
         // 1. Validate
         if (!email || !password) {
-            return res.status(400).json({
-                EM: "Email và password không được để trống",
-                DT: {}
-            })
+            return sendError(res, {
+                statusCode: 400,
+                message: "Tất cả các trường không được để trống"
+            });
         }
 
         // 2. Gọi Service
@@ -54,19 +49,11 @@ export const parentSignIn = async (req, res) => {
         });
 
         // 4. Trả Response
-        return res.status(200).json({
-            EM: "Đăng nhập thành công",
-            DT: {
-                accessToken: data.accessToken
-            }
-        });
+        return sendSuccess(res, { accessToken: data.accessToken }, "Đăng nhập thành công", 200);
 
     } catch (error) {
         console.error("Lỗi khi parent đăng nhập", error);
-        return res.status(error.statusCode || 500).json({
-            EM: error.message || "Lỗi server",
-            DT: {}
-        });
+        return sendError(res, error);
     }
 }
 
@@ -75,6 +62,13 @@ export const parentSignOut = async (req, res) => {
     try {
         // 1. Lấy token từ cookie
         const refreshToken = req.cookies?.refreshToken;
+
+        if (!refreshToken) {
+            return sendError(res, {
+                statusCode: 401,
+                message: "Thiếu refresh token"
+            });
+        }
 
         // 2. Gọi Service 
         await signOutParent(refreshToken);
@@ -87,17 +81,11 @@ export const parentSignOut = async (req, res) => {
         });
 
         // 4. Trả Response
-        return res.status(200).json({
-            EM: "Đăng xuất thành công",
-            DT: {}
-        });
+        return sendSuccess(res, null, "Đăng xuất thành công", 200);
 
     } catch (error) {
         console.error("Lỗi khi parent sign out", error);
-        return res.status(500).json({
-            EM: error.message || "Lỗi server",
-            DT: {}
-        });
+        return sendError(res, error);
     }
 }
 
@@ -108,29 +96,21 @@ export const refreshToken = async (req, res) => {
         const token = req.cookies?.refreshToken;
 
         if (!token) {
-            return res.status(401).json({
-                EM: "Refresh Token không tồn tại",
-                DT: {}
-            })
+            return sendError(res, {
+                statusCode: 401,
+                message: "Refresh Token không tồn tại"
+            });
         }
 
         // 2. Gọi Service
         const data = await refreshParentToken(token);
 
         // 3. Trả Response
-        return res.status(200).json({
-            EM: "Làm mới token thành công",
-            DT: {
-                accessToken: data.accessToken
-            }
-        });
+        return sendSuccess(res, { accessToken: data.accessToken }, "Làm mới token thành công", 200);
 
     } catch (error) {
         console.error("Lỗi khi gọi refreshToken", error);
-        return res.status(error.statusCode || 500).json({
-            EM: error.message || "Lỗi server",
-            DT: {}
-        });
+        return sendError(res, error);
     }
 }
 
@@ -141,25 +121,25 @@ export const updateProfile = async (req, res) => {
 
         // Validate: Check nếu có lỗi từ fileFilter
         if (req.fileValidationError) {
-            return res.status(400).json({
-                EM: req.fileValidationError,
-                DT: {}
+            return sendError(res, {
+                statusCode: 400,
+                message: req.fileValidationError
             });
         }
 
         // Validate: Check auth
         if (!parentId) {
-            return res.status(401).json({
-                EM: "Unauthorized",
-                DT: {}
+            return sendError(res, {
+                statusCode: 401,
+                message: "Người dùng không có quyền thực hiện hành động này"
             });
         }
 
         // Validate: Check required fields
         if (!firstName || !lastName || !email) {
-            return res.status(400).json({
-                EM: "FirstName, lastName, email không được để trống",
-                DT: {}
+            return sendError(res, {
+                statusCode: 400,
+                message: "Họ, tên, email không được để trống"
             });
         }
 
@@ -173,16 +153,10 @@ export const updateProfile = async (req, res) => {
         // Gọi service để update
         const data = await updateParentProfile(parentId, firstName, lastName, email, avatarUrl);
 
-        return res.status(200).json({
-            EM: "Cập nhật thông tin thành công",
-            DT: data
-        });
+        return sendSuccess(res, data, "Cập nhật thông tin thành công", 200);
 
     } catch (error) {
         console.error("Lỗi khi update parent profile", error);
-        return res.status(error.statusCode || 500).json({
-            EM: error.message || "Lỗi server",
-            DT: {}
-        });
+        return sendError(res, error);
     }
 }

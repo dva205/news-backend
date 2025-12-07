@@ -1,16 +1,17 @@
 import { Op } from "sequelize";
 import db from "../models/index.js";
 import { ApiError } from "../utils/ApiError.js";
+import { formatPublicArticle } from "../helpers/formatPublicArticle.js";
 
 // get all categories
 export const fetchAllCategories = async () => {
     const categories = await db.Category.findAll({
-        attributes: ['name'],
+        attributes: ['id', 'name'],
         order: [['name', 'ASC']]
     });
 
-    if (!categories || categories.length === 0) {
-        throw new ApiError("Không có category nào", 404);
+    if (!categories) {
+        return [];
     }
 
     return categories;
@@ -53,16 +54,12 @@ export const fetchNews = async (page, limit, search, categoryName) => {
         distinct: true // Important for correct count with joins
     });
 
-    if (!rows || rows.length === 0) {
-        throw new ApiError("Không có bài báo nào", 204);
-    }
-
     const totalPages = Math.ceil(count / limit);
 
     return {
-        articles: rows,
+        articles: rows.map(article => formatPublicArticle(article)),
         pagination: {
-            totalArticles: count,
+            totalItems: count,
             totalPages,
             currentPage: page,
             limit
@@ -85,5 +82,5 @@ export const fetchArticleById = async (articleId) => {
         throw new ApiError("Không tìm thấy bài báo", 204);
     }
 
-    return article;
+    return formatPublicArticle(article);
 };

@@ -4,7 +4,7 @@ import db from '../models/index.js';
 import crypto from "crypto";
 import { Op } from "sequelize";
 import { ApiError } from '../utils/ApiError.js';
-
+import { formatParentResponse } from '../helpers/formatParentResponse.js'
 
 export const signUpParent = async (email, password, firstName, lastName) => {
     const existUser = await db.User.findOne({ where: { email } })
@@ -15,7 +15,7 @@ export const signUpParent = async (email, password, firstName, lastName) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const newParent = await db.User.create({
+    const newUser = await db.User.create({
         email,
         password_hashed: hashedPassword,
         first_name: firstName,
@@ -24,12 +24,7 @@ export const signUpParent = async (email, password, firstName, lastName) => {
         role: "PARENT"
     });
 
-    return {
-        id: newParent.id,
-        email: newParent.email,
-        role: newParent.role,
-        display_name: newParent.display_name,
-    };
+    return formatParentResponse(newUser);
 }
 
 
@@ -66,15 +61,10 @@ export const signInParent = async (email, password) => {
     });
 
     return {
-        user: {
-            id: existUser.id,
-            email: existUser.email,
-            role: existUser.role,
-            display_name: existUser.display_name,
-        },
+        user: formatParentResponse(existUser),
         accessToken,
         refreshToken,
-        REFRESH_TOKEN_TTL
+        REFRESH_TOKEN_TTL,
     };
 }
 
@@ -85,7 +75,6 @@ export const signOutParent = async (refreshToken) => {
     if (!refreshToken) {
         return;
     }
-
 
     await db.Session.destroy({
         where: {
@@ -148,7 +137,7 @@ export const updateParentProfile = async (parentId, firstName, lastName, email, 
     })
 
     if (!parent) {
-        throw new ApiError("Không tìm thấy tài khoản phụ huynh hoặc bạn không có quyền sửa", 404);
+        throw new ApiError("Không tìm thấy tài khoản phụ huynh hoặc bạn không có quyền sửa", 405);
     }
 
     // Prepare update data
@@ -167,15 +156,5 @@ export const updateParentProfile = async (parentId, firstName, lastName, email, 
     await parent.update(updateData);
 
     // 3. Trả về thông tin đã cập nhật
-    return { 
-        parent: {
-            id: parent.id,
-            email: parent.email,
-            first_name: parent.first_name,
-            last_name: parent.last_name,
-            display_name: parent.display_name,
-            avatar_url: parent.avatar_url,
-            role: parent.role
-        }
-    };
+    return formatParentResponse(parent);
 }

@@ -2,6 +2,7 @@ import db from '../models/index.js';
 import crypto from "crypto";
 import { ApiError } from '../utils/ApiError.js';
 import { Op } from 'sequelize'
+import { formatChildResponse } from '../helpers/formatChildResponse.js';
 
 
 export const createChildAccount = async (parentId, childData) => {
@@ -46,15 +47,13 @@ export const createChildAccount = async (parentId, childData) => {
 
         // 7. Trả về dữ liệu
         return {
-            newChild,
-            newInvite
-            // Controller sẽ lo việc tạo `inviteUrl`
+            newChild: formatChildResponse(newChild, newInvite),
+            newInvite: newInvite
         };
-
     } catch (error) {
         await t.rollback();
         if (error instanceof ApiError) throw error;
-        throw new ApiError(`Lỗi khi tạo tài khoản: ${error.message}`, 500);
+        throw new ApiError(`Lỗi khi tạo tài khoản cho con: ${error.message}`, 500);
     }
 }
 
@@ -66,31 +65,25 @@ export const getAllChildren = async (parentId) => {
             role: 'CHILD'
         },
         attributes: { exclude: ['password_hashed'] },
-        include: [{
-            model: db.Invite,
-            as: 'receivedInvites',
-            attributes: ['code', 'used', 'expires_at'],
-            required: false
-        }]
+        include: [
+            {
+                model: db.Invite,
+                as: 'receivedInvites',
+                attributes: ['code', 'used', 'expires_at'],
+                required: false
+            },
+            {
+                model: db.Strict,
+                as: 'stricts',
+                attributes: ['time_limit_minutes', 'blocked_keyword', 'blocked_category', 'blocked_feature'],
+                require: false
+            }
+        ],
+        order: [['created_at', 'DESC']]
     });
-
-    if (!children || children.length === 0) {
-        throw new ApiError("Bạn chưa tạo tài khoản con nào", 404);
-    }
 
     // Format response to include invite code
-    const formattedChildren = children.map(child => {
-        const childData = child.toJSON();
-        const invite = childData.receivedInvites?.[0]; // Get first invite
-
-        return {
-            ...childData,
-            inviteCode: invite?.code || null,
-            inviteUsed: invite?.used || false,
-            inviteExpired: invite?.expires_at ? new Date(invite.expires_at) < new Date() : false,
-            receivedInvites: undefined
-        };
-    });
+    const formattedChildren = children.map(child => formatChildResponse(child));
 
     return { children: formattedChildren };
 }
@@ -109,7 +102,7 @@ export const updateChild = async (parentId, childId, updateData) => {
     });
 
     if (!child) {
-        throw new ApiError("Không tìm thấy tài khoản con hoặc bạn không có quyền sửa", 404);
+        throw new ApiError("Không tìm thấy tài khoản con hoặc bạn không có quyền sửa", 400);
     }
 
     // 2. Cập nhật thông tin
@@ -122,7 +115,7 @@ export const updateChild = async (parentId, childId, updateData) => {
     });
 
     // 3. Trả về thông tin đã cập nhật
-    return { child };
+    return formatChildResponse(child);
 }
 
 export const setStrict = async (childId, parentId, timeLimitMinute, blockedKeyword, blockedCategory, blockedFeature) => {
@@ -138,31 +131,35 @@ export const setStrict = async (childId, parentId, timeLimitMinute, blockedKeywo
         throw new ApiError("Không tìm thấy tài khoản con hoặc bạn không có quyền sửa", 403)
     }
 
+    const updateData = {
+        time_limit_minutes: timeLimitMinute,
+        blocked_keyword: blockedKeyword || [],
+        blocked_category: blockedCategory || [],
+        blocked_feature: blockedFeature || []
+    };
+
+    console.log(updateData)
+
     // tìm strict để update nếu ko có thì create
-    let [strictRecord, created] = await db.Strict.findOrCreate({
+    const [strictRecord, created] = await db.Strict.findOrCreate({
         where: {
             child_id: childId
         },
-        defaults: {
-            time_limit_minutes: timeLimitMinute,
-            blocked_keyword: blockedKeyword,
-            blocked_category: blockedCategory,
-            blocked_feature: blockedFeature
-        }
+        defaults: updateData
     })
 
 
     // nếu ko create thì update
     if (!created) {
-        strictRecord = await strictRecord.update({
-            time_limit_minutes: timeLimitMinute,
-            blocked_keyword: blockedKeyword,
-            blocked_category: blockedCategory,
-            blocked_feature: blockedFeature
-        })
+        await strictRecord.update(updateData);
     }
 
-    return strictRecord;
+    return {
+        timeLimit: timeLimitMinute,
+        blockedKeywords: blockedKeyword || [],
+        blockedCategories: blockedCategory || [],
+        blockedFeatures: blockedFeature || []
+    };
 }
 
 export const getTimeLimit = async (childId, parentId, timeRange) => {
@@ -231,12 +228,10 @@ export const getTimeLimit = async (childId, parentId, timeRange) => {
 
     // success
     return {
-        child: {
-            id: child.id,
-            display_name: child.display_name
-        },
-        timeRange,
-        dailyStats: stats,
+        childId: child.id,
+        childName: child.display_name,
+        range: timeRange,
+        chartData: stats,
         totalMinutes
     };
 }

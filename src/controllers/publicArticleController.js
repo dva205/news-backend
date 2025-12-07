@@ -1,4 +1,5 @@
 import { fetchAllCategories, fetchNews, fetchArticleById } from "../services/publicArticleService.js";
+import { sendSuccess, sendError } from '../utils/ApiResponse.js';
 
 // lấy báo
 export const getArticles = async (req, res) => {
@@ -10,16 +11,10 @@ export const getArticles = async (req, res) => {
 
         const data = await fetchNews(page, limit, search, category);
 
-        return res.status(200).json({
-            EM: "Lấy bài báo thành công",
-            DT: data
-        });
+        return sendSuccess(res, data, "Lấy danh sách bài báo thành công", 200);
     } catch (error) {
         console.error("Lỗi khi lấy bài báo:", error);
-        return res.status(error.statusCode || 500).json({
-            EM: error.message || "Lỗi server",
-            DT: {}
-        });
+        return sendError(res, error);
     }
 };
 
@@ -28,16 +23,10 @@ export const getAllCategories = async (req, res) => {
     try {
         const categories = await fetchAllCategories();
 
-        return res.status(200).json({
-            EM: "Lấy danh sách categories thành công",
-            DT: categories
-        });
+        return sendSuccess(res, categories, "Lấy danh sách categories thành công", 200);
     } catch (error) {
         console.error('Lỗi khi lấy categories:', error);
-        return res.status(error.statusCode || 500).json({
-            EM: error.message || "Lỗi server",
-            DT: {}
-        });
+        return sendError(res, error);
     }
 };
 
@@ -48,15 +37,9 @@ export const getArticleById = async (req, res) => {
 
         const article = await fetchArticleById(articleId);
 
-        return res.status(200).json({
-            EM: "Lấy bài báo thành công",
-            DT: article
-        });
+        return sendSuccess(res, article, "Lấy chi tiết bài báo thành công", 200);
     } catch (error) {
         console.error("Lỗi khi lấy bài báo:", error);
-        return res.status(error.statusCode || 500).json({
-            EM: error.message || "Lỗi server",
-            DT: {}
-        });
+        return sendError(res, error);
     }
 };

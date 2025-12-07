@@ -3,41 +3,125 @@
     "info": {
         "title": "News Backend API",
         "version": "1.0.0",
-        "description": "REST API Documentation for News App (Parent & Child Management System)"
+        "description": "API Documentation for News App (Parent & Child modules)"
     },
     "servers": [
         {
             "url": "http://localhost:5000",
-            "description": "Local Development Server"
+            "description": "Local Server"
+        }
+    ],
+    "components": {
+        "securitySchemes": {
+            "BearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+            }
+        },
+        "schemas": {
+            "ApiResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Đăng kí thành công"
+                    },
+                    "statusCode": {
+                        "type": "integer",
+                        "example": 200
+                    },
+                    "data": {
+                        "type": "object",
+                        "nullable": true
+                    }
+                }
+            },
+            "Pagination": {
+                "type": "object",
+                "properties": {
+                    "totalItems": {
+                        "type": "integer"
+                    },
+                    "totalPages": {
+                        "type": "integer"
+                    },
+                    "currentPage": {
+                        "type": "integer"
+                    },
+                    "limit": {
+                        "type": "integer"
+                    }
+                }
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Parent Auth",
+            "description": "Authentication for Parents"
+        },
+        {
+            "name": "Parent Child Management",
+            "description": "Parent manages Children accounts"
+        },
+        {
+            "name": "Child Auth",
+            "description": "Authentication for Children"
+        },
+        {
+            "name": "Child Article",
+            "description": "News reading & interaction for Children"
+        },
+        {
+            "name": "Child Activity",
+            "description": "Time logging"
+        },
+        {
+            "name": "Public Article",
+            "description": "Public news access"
+        },
+        {
+            "name": "Account",
+            "description": "General account info"
         }
     ],
     "paths": {
-        "/parent/auth/signin": {
+        "/parent/auth/signup": {
             "post": {
-                "summary": "Parent Sign In",
-                "description": "Authenticate parent user and return access token",
                 "tags": [
                     "Parent Auth"
                 ],
+                "summary": "Parent Register",
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "required": ["email", "password"],
+                                "required": [
+                                    "email",
+                                    "password",
+                                    "firstName",
+                                    "lastName"
+                                ],
                                 "properties": {
                                     "email": {
                                         "type": "string",
-                                        "format": "email",
-                                        "example": "parent@example.com",
-                                        "description": "Parent's email address"
+                                        "format": "email"
                                     },
                                     "password": {
                                         "type": "string",
-                                        "minLength": 6,
-                                        "example": "password123",
-                                        "description": "Parent's password"
+                                        "format": "password"
+                                    },
+                                    "firstName": {
+                                        "type": "string"
+                                    },
+                                    "lastName": {
+                                        "type": "string"
                                     }
                                 }
                             }
@@ -46,47 +130,11 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Login successful",
+                        "description": "Success",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/SuccessResponse"
-                                },
-                                "example": {
-                                    "EM": "Đăng nhập thành công",
-                                    "DT": {
-                                        "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request - Missing or invalid fields",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized - Invalid credentials",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
+                                    "$ref": "#/components/schemas/ApiResponse"
                                 }
                             }
                         }
@@ -94,42 +142,31 @@
                 }
             }
         },
-        "/parent/auth/signup": {
+        "/parent/auth/signin": {
             "post": {
-                "summary": "Parent Sign Up",
-                "description": "Create a new parent account",
                 "tags": [
                     "Parent Auth"
                 ],
+                "summary": "Parent Login",
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "required": ["email", "password", "firstName", "lastName"],
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
                                 "properties": {
                                     "email": {
                                         "type": "string",
                                         "format": "email",
-                                        "example": "parent@example.com",
-                                        "description": "Unique email address"
+                                        "example": "parent@gmail.com"
                                     },
                                     "password": {
                                         "type": "string",
-                                        "minLength": 6,
-                                        "example": "password123",
-                                        "description": "Password for the account"
-                                    },
-                                    "firstName": {
-                                        "type": "string",
-                                        "example": "John",
-                                        "description": "Parent's first name"
-                                    },
-                                    "lastName": {
-                                        "type": "string",
-                                        "example": "Doe",
-                                        "description": "Parent's last name"
+                                        "format": "password",
+                                        "example": "123456"
                                     }
                                 }
                             }
@@ -138,41 +175,34 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Account created successfully",
+                        "description": "Login Success",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/SuccessResponse"
-                                },
-                                "example": {
-                                    "EM": "Đăng kí thành công",
-                                    "DT": {
-                                        "id": 1,
-                                        "email": "parent@example.com",
-                                        "firstName": "John",
-                                        "lastName": "Doe",
-                                        "role": "parent"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request - Missing or invalid fields",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/ApiResponse"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "data": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "user": {
+                                                            "type": "object"
+                                                        },
+                                                        "accessToken": {
+                                                            "type": "string"
+                                                        },
+                                                        "refreshToken": {
+                                                            "type": "string"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -182,93 +212,36 @@
         },
         "/parent/auth/signout": {
             "post": {
-                "summary": "Parent Sign Out",
-                "description": "Sign out parent user by clearing refresh token cookie",
                 "tags": [
                     "Parent Auth"
                 ],
+                "summary": "Signout",
                 "responses": {
                     "200": {
-                        "description": "Signed out successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessResponse"
-                                },
-                                "example": {
-                                    "EM": "Đăng xuất thành công",
-                                    "DT": {}
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
+                        "description": "Success"
                     }
                 }
             }
         },
         "/parent/auth/refresh": {
             "post": {
-                "summary": "Refresh Parent Token",
-                "description": "Refresh access token using refresh token from cookie",
                 "tags": [
                     "Parent Auth"
                 ],
+                "summary": "Refresh Token",
                 "responses": {
                     "200": {
-                        "description": "Token refreshed successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessResponse"
-                                },
-                                "example": {
-                                    "EM": "Làm mới token thành công",
-                                    "DT": {
-                                        "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized - No refresh token",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
+                        "description": "New Access Token"
                     }
                 }
             }
         },
         "/parent/auth/update": {
             "patch": {
-                "summary": "Update Parent Profile",
-                "description": "Update parent profile information including avatar upload",
                 "tags": [
                     "Parent Auth"
                 ],
+                "summary": "Update Parent Profile",
                 "security": [
                     {
                         "BearerAuth": []
@@ -276,27 +249,18 @@
                 ],
                 "requestBody": {
                     "content": {
-                        "multipart/form-data": {
+                        "application/json": {
                             "schema": {
                                 "type": "object",
                                 "properties": {
                                     "firstName": {
-                                        "type": "string",
-                                        "description": "Parent's first name"
+                                        "type": "string"
                                     },
                                     "lastName": {
-                                        "type": "string",
-                                        "description": "Parent's last name"
+                                        "type": "string"
                                     },
                                     "email": {
-                                        "type": "string",
-                                        "format": "email",
-                                        "description": "Parent's email"
-                                    },
-                                    "avatar": {
-                                        "type": "string",
-                                        "format": "binary",
-                                        "description": "Profile avatar image (optional)"
+                                        "type": "string"
                                     }
                                 }
                             }
@@ -305,104 +269,55 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Profile updated successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessResponse"
-                                },
-                                "example": {
-                                    "EM": "Cập nhật thông tin thành công",
-                                    "DT": {
-                                        "id": 1,
-                                        "email": "parent@example.com",
-                                        "firstName": "John",
-                                        "lastName": "Doe",
-                                        "avatar": "http://localhost:5000/image/avatar-1-123456789.jpg"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request - Invalid file or missing fields",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
+                        "description": "Updated"
                     }
                 }
             }
         },
         "/parent/child/create": {
             "post": {
-                "summary": "Create Child Account",
-                "description": "Create a new child account and generate invitation link",
                 "tags": [
                     "Parent Child Management"
                 ],
+                "summary": "Create Child Account",
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "required": ["username", "firstName", "lastName", "dob", "gender"],
+                                "required": [
+                                    "username",
+                                    "firstName",
+                                    "lastName",
+                                    "dob",
+                                    "gender"
+                                ],
                                 "properties": {
                                     "username": {
-                                        "type": "string",
-                                        "example": "childuser123",
-                                        "description": "Unique username for the child"
+                                        "type": "string"
                                     },
                                     "firstName": {
-                                        "type": "string",
-                                        "example": "Jane",
-                                        "description": "Child's first name"
+                                        "type": "string"
                                     },
                                     "lastName": {
-                                        "type": "string",
-                                        "example": "Doe",
-                                        "description": "Child's last name"
+                                        "type": "string"
                                     },
                                     "dob": {
                                         "type": "string",
-                                        "format": "date",
-                                        "example": "2015-01-01",
-                                        "description": "Date of birth (YYYY-MM-DD)"
+                                        "format": "date"
                                     },
                                     "gender": {
                                         "type": "string",
-                                        "enum": ["Male", "Female", "Other"],
-                                        "example": "Female",
-                                        "description": "Child's gender"
+                                        "enum": [
+                                            "MALE",
+                                            "FEMALE",
+                                            "OTHER"
+                                        ]
                                     }
                                 }
                             }
@@ -410,72 +325,18 @@
                     }
                 },
                 "responses": {
-                    "200": {
-                        "description": "Child account created successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessResponse"
-                                },
-                                "example": {
-                                    "EM": "Đăng kí cho con thành công",
-                                    "DT": {
-                                        "id": 2,
-                                        "username": "childuser123",
-                                        "role": "child",
-                                        "display_name": "Jane Doe",
-                                        "dob": "2015-01-01",
-                                        "gender": "Female",
-                                        "parent_id": 1,
-                                        "newInvite": {
-                                            "code": "ABC123XYZ"
-                                        },
-                                        "inviteUrl": "http://localhost:5173/child/auth/invite?code=ABC123XYZ"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request - Missing or invalid fields",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
+                    "201": {
+                        "description": "Created with Invite Code"
                     }
                 }
             }
         },
         "/parent/child/all": {
             "get": {
-                "summary": "Get All Child Accounts",
-                "description": "Retrieve all child accounts belonging to the authenticated parent",
                 "tags": [
                     "Parent Child Management"
                 ],
+                "summary": "Get all children",
                 "security": [
                     {
                         "BearerAuth": []
@@ -483,81 +344,24 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "List of children retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessResponse"
-                                },
-                                "example": {
-                                    "EM": "Bạn có 2 tài khoản con",
-                                    "DT": {
-                                        "children": [
-                                            {
-                                                "id": 2,
-                                                "username": "child1",
-                                                "firstName": "Jane",
-                                                "lastName": "Doe",
-                                                "dob": "2015-01-01",
-                                                "gender": "Female",
-                                                "role": "child",
-                                                "parent_id": 1
-                                            },
-                                            {
-                                                "id": 3,
-                                                "username": "child2",
-                                                "firstName": "John",
-                                                "lastName": "Doe",
-                                                "dob": "2017-03-15",
-                                                "gender": "Male",
-                                                "role": "child",
-                                                "parent_id": 1
-                                            }
-                                        ]
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
+                        "description": "List of children"
                     }
                 }
             }
         },
         "/parent/child/update/{id}": {
             "patch": {
-                "summary": "Update Child Account",
-                "description": "Update child account information",
                 "tags": [
                     "Parent Child Management"
                 ],
+                "summary": "Update Child Info",
                 "parameters": [
                     {
                         "name": "id",
                         "in": "path",
                         "required": true,
-                        "description": "Child account ID",
                         "schema": {
-                            "type": "integer",
-                            "example": 2
+                            "type": "integer"
                         }
                     }
                 ],
@@ -567,34 +371,22 @@
                     }
                 ],
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "required": ["firstName", "lastName"],
                                 "properties": {
                                     "firstName": {
-                                        "type": "string",
-                                        "example": "Jane",
-                                        "description": "Child's first name"
+                                        "type": "string"
                                     },
                                     "lastName": {
-                                        "type": "string",
-                                        "example": "Doe",
-                                        "description": "Child's last name"
+                                        "type": "string"
                                     },
                                     "dob": {
-                                        "type": "string",
-                                        "format": "date",
-                                        "example": "2015-01-01",
-                                        "description": "Date of birth (optional)"
+                                        "type": "string"
                                     },
                                     "gender": {
-                                        "type": "string",
-                                        "enum": ["Male", "Female", "Other"],
-                                        "example": "Female",
-                                        "description": "Gender (optional)"
+                                        "type": "string"
                                     }
                                 }
                             }
@@ -603,75 +395,24 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Child account updated successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessResponse"
-                                },
-                                "example": {
-                                    "EM": "Cập nhật tài khoản con thành công",
-                                    "DT": {
-                                        "id": 2,
-                                        "username": "child1",
-                                        "firstName": "Jane",
-                                        "lastName": "Smith",
-                                        "dob": "2015-01-01",
-                                        "gender": "Female"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request - Missing required fields or invalid ID",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
+                        "description": "Success"
                     }
                 }
             }
         },
         "/parent/child/set-strict/{id}": {
             "post": {
-                "summary": "Set Child Strict Mode",
-                "description": "Configure strict mode settings for child account (time limits, blocked content, etc.)",
                 "tags": [
                     "Parent Child Management"
                 ],
+                "summary": "Set Strict Rules (Time limit, Keywords...)",
                 "parameters": [
                     {
                         "name": "id",
                         "in": "path",
                         "required": true,
-                        "description": "Child account ID",
                         "schema": {
-                            "type": "integer",
-                            "example": 2
+                            "type": "integer"
                         }
                     }
                 ],
@@ -681,7 +422,6 @@
                     }
                 ],
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
@@ -689,32 +429,25 @@
                                 "properties": {
                                     "timeLimit": {
                                         "type": "integer",
-                                        "example": 120,
-                                        "description": "Daily time limit in minutes"
+                                        "description": "Minutes"
                                     },
                                     "blockedKeyword": {
                                         "type": "array",
                                         "items": {
                                             "type": "string"
-                                        },
-                                        "example": ["violence", "gambling"],
-                                        "description": "List of blocked keywords"
+                                        }
                                     },
                                     "blockedCategory": {
                                         "type": "array",
                                         "items": {
-                                            "type": "integer"
-                                        },
-                                        "example": [1, 3],
-                                        "description": "List of blocked category IDs"
+                                            "type": "string"
+                                        }
                                     },
                                     "blockedFeature": {
                                         "type": "array",
                                         "items": {
                                             "type": "string"
-                                        },
-                                        "example": ["comments", "sharing"],
-                                        "description": "List of blocked features"
+                                        }
                                     }
                                 }
                             }
@@ -723,73 +456,24 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Strict mode settings updated successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessResponse"
-                                },
-                                "example": {
-                                    "EM": "Cập nhật tài khoản các giới hạn cho con thành công",
-                                    "DT": {
-                                        "timeLimit": 120,
-                                        "blockedKeyword": ["violence"],
-                                        "blockedCategory": [1, 3],
-                                        "blockedFeature": ["comments"]
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request - Invalid child ID or parameters",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
+                        "description": "Rules Updated"
                     }
                 }
             }
         },
         "/parent/child/view-log/{id}": {
             "post": {
-                "summary": "View Child Activity Log",
-                "description": "Retrieve child's activity log and usage statistics",
                 "tags": [
                     "Parent Child Management"
                 ],
+                "summary": "View Activity Log (Chart Data)",
                 "parameters": [
                     {
                         "name": "id",
                         "in": "path",
                         "required": true,
-                        "description": "Child account ID",
                         "schema": {
-                            "type": "integer",
-                            "example": 2
+                            "type": "integer"
                         }
                     }
                 ],
@@ -799,17 +483,18 @@
                     }
                 ],
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "required": ["timeRange"],
                                 "properties": {
                                     "timeRange": {
                                         "type": "string",
-                                        "example": "7days",
-                                        "description": "Time range for log (e.g., '7days', '30days', 'today')"
+                                        "enum": [
+                                            "today",
+                                            "week",
+                                            "month"
+                                        ]
                                     }
                                 }
                             }
@@ -818,149 +503,55 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Activity log retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessResponse"
-                                },
-                                "example": {
-                                    "EM": "Xem hoạt động của con thành công",
-                                    "DT": {
-                                        "totalTimeSpent": 145,
-                                        "articlesRead": 12,
-                                        "dailyStats": [
-                                            {
-                                                "date": "2024-12-01",
-                                                "timeSpent": 25,
-                                                "articlesRead": 2
-                                            }
-                                        ]
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request - Invalid child ID or timeRange",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
+                        "description": "Chart Data"
                     }
                 }
             }
         },
         "/child/auth/invite": {
             "get": {
-                "summary": "Validate Invite Code",
-                "description": "Validate invitation code and return invite details",
                 "tags": [
                     "Child Auth"
                 ],
+                "summary": "Validate Invite Code",
                 "parameters": [
                     {
                         "name": "code",
                         "in": "query",
                         "required": true,
-                        "description": "Invitation code from the invite link",
                         "schema": {
-                            "type": "string",
-                            "example": "ABC123XYZ"
+                            "type": "string"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Invite code is valid",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessResponse"
-                                },
-                                "example": {
-                                    "EM": "Link hợp lệ",
-                                    "DT": {
-                                        "inviteId": 1,
-                                        "parentName": "John Doe",
-                                        "childUsername": "childuser123",
-                                        "expiresAt": "2024-12-31T23:59:59Z"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request - Missing or invalid code",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
+                        "description": "Returns Parent & Child info"
                     }
                 }
             }
         },
         "/child/auth/activate": {
             "post": {
-                "summary": "Activate Child Account",
-                "description": "Activate child account using invitation code and set password",
                 "tags": [
                     "Child Auth"
                 ],
+                "summary": "Activate Account",
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "required": ["code", "password"],
+                                "required": [
+                                    "code",
+                                    "password"
+                                ],
                                 "properties": {
                                     "code": {
-                                        "type": "string",
-                                        "example": "ABC123XYZ",
-                                        "description": "Invitation code"
+                                        "type": "string"
                                     },
                                     "password": {
-                                        "type": "string",
-                                        "minLength": 6,
-                                        "example": "childpass123",
-                                        "description": "Password for the child account"
+                                        "type": "string"
                                     }
                                 }
                             }
@@ -969,72 +560,32 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Account activated successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessResponse"
-                                },
-                                "example": {
-                                    "EM": "Kích hoạt thành công",
-                                    "DT": {
-                                        "id": 2,
-                                        "username": "childuser123",
-                                        "firstName": "Jane",
-                                        "lastName": "Doe",
-                                        "role": "child"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request - Missing fields or invalid code",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
+                        "description": "Activated"
                     }
                 }
             }
         },
         "/child/auth/signin": {
             "post": {
-                "summary": "Child Sign In",
-                "description": "Authenticate child user and return access token",
                 "tags": [
                     "Child Auth"
                 ],
+                "summary": "Child Login",
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "required": ["username", "password"],
+                                "required": [
+                                    "username",
+                                    "password"
+                                ],
                                 "properties": {
                                     "username": {
-                                        "type": "string",
-                                        "example": "childuser123",
-                                        "description": "Child's username"
+                                        "type": "string"
                                     },
                                     "password": {
-                                        "type": "string",
-                                        "example": "childpass123",
-                                        "description": "Child's password"
+                                        "type": "string"
                                     }
                                 }
                             }
@@ -1043,174 +594,63 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Login successful",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessResponse"
-                                },
-                                "example": {
-                                    "EM": "Đăng nhập thành công",
-                                    "DT": {
-                                        "id": 2,
-                                        "username": "childuser123",
-                                        "firstName": "Jane",
-                                        "lastName": "Doe",
-                                        "role": "child",
-                                        "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request - Missing username or password",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized - Invalid credentials",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
+                        "description": "Login Success"
                     }
                 }
             }
         },
         "/child/auth/signout": {
             "post": {
-                "summary": "Child Sign Out",
-                "description": "Sign out child user by clearing refresh token cookie",
                 "tags": [
                     "Child Auth"
                 ],
+                "summary": "Signout",
                 "responses": {
                     "200": {
-                        "description": "Signed out successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessResponse"
-                                },
-                                "example": {
-                                    "EM": "Đăng xuất thành công",
-                                    "DT": {}
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
+                        "description": "Success"
                     }
                 }
             }
         },
         "/child/auth/refresh": {
             "post": {
-                "summary": "Refresh Child Token",
-                "description": "Refresh child access token using refresh token from cookie",
                 "tags": [
                     "Child Auth"
                 ],
+                "summary": "Refresh Token",
                 "responses": {
                     "200": {
-                        "description": "Token refreshed successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessResponse"
-                                },
-                                "example": {
-                                    "EM": "Làm mới token thành công",
-                                    "DT": {
-                                        "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized - No refresh token",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
+                        "description": "Success"
                     }
                 }
             }
         },
         "/public/articles": {
             "get": {
-                "summary": "Get Public Articles List",
-                "description": "Retrieve paginated list of public articles with optional filtering",
                 "tags": [
                     "Public Article"
                 ],
+                "summary": "Get Public News List",
                 "parameters": [
                     {
                         "name": "page",
                         "in": "query",
-                        "description": "Page number (default: 1)",
                         "schema": {
                             "type": "integer",
-                            "minimum": 1,
                             "default": 1
                         }
                     },
                     {
                         "name": "limit",
                         "in": "query",
-                        "description": "Number of articles per page (default: 10)",
                         "schema": {
                             "type": "integer",
-                            "minimum": 1,
-                            "maximum": 100,
                             "default": 10
                         }
                     },
                     {
                         "name": "search",
                         "in": "query",
-                        "description": "Search term for article title or content",
                         "schema": {
                             "type": "string"
                         }
@@ -1218,175 +658,60 @@
                     {
                         "name": "category",
                         "in": "query",
-                        "description": "Filter by category ID",
                         "schema": {
-                            "type": "integer"
+                            "type": "string"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Articles retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessResponse"
-                                },
-                                "example": {
-                                    "EM": "Lấy bài báo thành công",
-                                    "DT": {
-                                        "articles": [
-                                            {
-                                                "id": 1,
-                                                "title": "Sample Article",
-                                                "summary": "Article summary...",
-                                                "image": "http://localhost:5000/image/article-1.jpg",
-                                                "category_id": 1,
-                                                "published_at": "2024-12-01T10:00:00Z"
-                                            }
-                                        ],
-                                        "pagination": {
-                                            "page": 1,
-                                            "limit": 10,
-                                            "total": 25,
-                                            "totalPages": 3
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
+                        "description": "Success"
                     }
                 }
             }
         },
         "/public/articles/categories": {
             "get": {
-                "summary": "Get All Categories",
-                "description": "Retrieve list of all available article categories",
                 "tags": [
                     "Public Article"
                 ],
+                "summary": "Get Categories",
                 "responses": {
                     "200": {
-                        "description": "Categories retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessResponse"
-                                },
-                                "example": {
-                                    "EM": "Lấy danh sách categories thành công",
-                                    "DT": [
-                                        {
-                                            "id": 1,
-                                            "name": "Technology",
-                                            "description": "Latest technology news"
-                                        },
-                                        {
-                                            "id": 2,
-                                            "name": "Sports",
-                                            "description": "Sports news and updates"
-                                        }
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
+                        "description": "List of categories"
                     }
                 }
             }
         },
         "/public/articles/{id}": {
             "get": {
-                "summary": "Get Article Details",
-                "description": "Retrieve detailed information for a specific article",
                 "tags": [
                     "Public Article"
                 ],
+                "summary": "Get Public Article Detail",
                 "parameters": [
                     {
                         "name": "id",
                         "in": "path",
                         "required": true,
-                        "description": "Article ID",
                         "schema": {
-                            "type": "integer",
-                            "example": 1
+                            "type": "integer"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Article details retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessResponse"
-                                },
-                                "example": {
-                                    "EM": "Lấy bài báo thành công",
-                                    "DT": {
-                                        "id": 1,
-                                        "title": "Complete Article Title",
-                                        "content": "Full article content...",
-                                        "summary": "Article summary",
-                                        "image": "http://localhost:5000/image/article-1.jpg",
-                                        "category_id": 1,
-                                        "published_at": "2024-12-01T10:00:00Z"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Article not found",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
+                        "description": "Article Detail"
                     }
                 }
             }
         },
         "/child/articles": {
             "get": {
-                "summary": "Get Filtered Articles for Child",
-                "description": "Retrieve paginated list of articles filtered for child safety (blocked content removed)",
                 "tags": [
                     "Child Article"
                 ],
+                "summary": "Get Articles (With Strict Filter)",
                 "security": [
                     {
                         "BearerAuth": []
@@ -1396,28 +721,20 @@
                     {
                         "name": "page",
                         "in": "query",
-                        "description": "Page number (default: 1)",
                         "schema": {
-                            "type": "integer",
-                            "minimum": 1,
-                            "default": 1
+                            "type": "integer"
                         }
                     },
                     {
                         "name": "limit",
                         "in": "query",
-                        "description": "Number of articles per page (default: 10)",
                         "schema": {
-                            "type": "integer",
-                            "minimum": 1,
-                            "maximum": 50,
-                            "default": 10
+                            "type": "integer"
                         }
                     },
                     {
                         "name": "search",
                         "in": "query",
-                        "description": "Search term for article title or content",
                         "schema": {
                             "type": "string"
                         }
@@ -1425,74 +742,24 @@
                     {
                         "name": "category",
                         "in": "query",
-                        "description": "Filter by category ID",
                         "schema": {
-                            "type": "integer"
+                            "type": "string"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Filtered articles retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessResponse"
-                                },
-                                "example": {
-                                    "EM": "Lấy danh sách bài báo thành công",
-                                    "DT": {
-                                        "articles": [
-                                            {
-                                                "id": 1,
-                                                "title": "Safe Article Title",
-                                                "summary": "Family-friendly article summary",
-                                                "image": "http://localhost:5000/image/article-1.jpg",
-                                                "category_id": 2,
-                                                "published_at": "2024-12-01T10:00:00Z"
-                                            }
-                                        ],
-                                        "pagination": {
-                                            "page": 1,
-                                            "limit": 10,
-                                            "total": 15,
-                                            "totalPages": 2
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
+                        "description": "Filtered Articles"
                     }
                 }
             }
         },
         "/child/articles/categories": {
             "get": {
-                "summary": "Get Categories for Child",
-                "description": "Retrieve list of categories available to child (excluding blocked categories)",
                 "tags": [
                     "Child Article"
                 ],
+                "summary": "Get Allowed Categories",
                 "security": [
                     {
                         "BearerAuth": []
@@ -1500,60 +767,17 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Categories retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessResponse"
-                                },
-                                "example": {
-                                    "EM": "Lấy danh sách categories thành công",
-                                    "DT": [
-                                        {
-                                            "id": 2,
-                                            "name": "Education",
-                                            "description": "Educational content"
-                                        },
-                                        {
-                                            "id": 4,
-                                            "name": "Nature",
-                                            "description": "Nature and environment"
-                                        }
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
+                        "description": "Filtered Categories"
                     }
                 }
             }
         },
-        "/child/articles/strict-rules": {
+        "/child/strict-rules": {
             "get": {
-                "summary": "Get Current Strict Rules",
-                "description": "Retrieve current strict mode rules applied to the child account",
                 "tags": [
                     "Child Article"
                 ],
+                "summary": "Get Current Rules",
                 "security": [
                     {
                         "BearerAuth": []
@@ -1561,146 +785,120 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Strict rules retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessResponse"
-                                },
-                                "example": {
-                                    "EM": "Lấy strict rules thành công",
-                                    "DT": {
-                                        "hasRules": true,
-                                        "timeLimit": 120,
-                                        "blockedKeyword": ["violence", "gambling"],
-                                        "blockedCategory": [1, 3],
-                                        "blockedFeature": ["comments"]
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
+                        "description": "Rules Info"
                     }
                 }
             }
         },
         "/child/articles/{id}": {
             "get": {
-                "summary": "Get Article Details for Child",
-                "description": "Retrieve detailed article information filtered for child safety",
                 "tags": [
                     "Child Article"
+                ],
+                "summary": "Get Article Detail (Check Blocked & Saved)",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
                 ],
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
+                "responses": {
+                    "200": {
+                        "description": "Article with isSaved flag"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Child Article"
+                ],
+                "summary": "Toggle Save/Unsave Article",
                 "parameters": [
                     {
                         "name": "id",
                         "in": "path",
                         "required": true,
-                        "description": "Article ID",
                         "schema": {
-                            "type": "integer",
-                            "example": 1
+                            "type": "integer"
                         }
+                    }
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Article details retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessResponse"
-                                },
-                                "example": {
-                                    "EM": "Lấy bài báo thành công",
-                                    "DT": {
-                                        "article": {
-                                            "id": 1,
-                                            "title": "Safe Article Title",
-                                            "content": "Filtered, family-friendly content...",
-                                            "summary": "Article summary",
-                                            "image": "http://localhost:5000/image/article-1.jpg",
-                                            "category_id": 2,
-                                            "published_at": "2024-12-01T10:00:00Z"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request - Missing article ID",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Article not found or blocked",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
+                        "description": "Toggle success"
                     }
                 }
             }
         },
-        "/child/activity/log": {
-            "post": {
-                "summary": "Log Child Reading Activity",
-                "description": "Log child's reading time/activity for monitoring purposes",
+        "/child/articles/{id}/comments": {
+            "get": {
                 "tags": [
-                    "Child Activity"
+                    "Child Article"
+                ],
+                "summary": "Get Comments",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List comments"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Child Article"
+                ],
+                "summary": "Post Comment",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
                 ],
                 "security": [
                     {
@@ -1708,18 +906,86 @@
                     }
                 ],
                 "requestBody": {
-                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "required": ["activeSeconds"],
+                                "required": [
+                                    "content"
+                                ],
+                                "properties": {
+                                    "content": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Comment Created (Returns comment object)"
+                    }
+                }
+            }
+        },
+        "/child/articles/saved": {
+            "get": {
+                "tags": [
+                    "Child Article"
+                ],
+                "summary": "Get Saved Articles",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List saved articles"
+                    }
+                }
+            }
+        },
+        "/child/activity/log": {
+            "post": {
+                "tags": [
+                    "Child Activity"
+                ],
+                "summary": "Log Active Time",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "activeSeconds"
+                                ],
                                 "properties": {
                                     "activeSeconds": {
                                         "type": "integer",
-                                        "minimum": 0,
-                                        "example": 300,
-                                        "description": "Number of seconds the child was actively reading/viewing content"
+                                        "description": "Seconds to add"
                                     }
                                 }
                             }
@@ -1728,63 +994,17 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Activity logged successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessResponse"
-                                },
-                                "example": {
-                                    "EM": "Log hoạt động con thành công",
-                                    "DT": {
-                                        "loggedAt": "2024-12-01T10:30:00Z",
-                                        "totalToday": 450,
-                                        "remainingTime": 2700
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request - Invalid activeSeconds value",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
+                        "description": "Log success"
                     }
                 }
             }
         },
         "/account/me": {
             "get": {
-                "summary": "Get Current User Profile",
-                "description": "Retrieve profile information of the currently authenticated user (parent or child)",
                 "tags": [
                     "Account"
                 ],
+                "summary": "Get Current User Info",
                 "security": [
                     {
                         "BearerAuth": []
@@ -1792,244 +1012,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "User profile retrieved successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessResponse"
-                                },
-                                "example": {
-                                    "EM": "Lấy thông tin tài khoản thành công",
-                                    "DT": {
-                                        "id": 1,
-                                        "email": "parent@example.com",
-                                        "firstName": "John",
-                                        "lastName": "Doe",
-                                        "role": "parent",
-                                        "avatar": "http://localhost:5000/image/avatar-1-123456789.jpg",
-                                        "createdAt": "2024-01-01T00:00:00Z"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ErrorResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    },
-    "components": {
-        "securitySchemes": {
-            "BearerAuth": {
-                "type": "http",
-                "scheme": "bearer",
-                "bearerFormat": "JWT",
-                "description": "JWT token obtained from login endpoints"
-            }
-        },
-        "schemas": {
-            "SuccessResponse": {
-                "type": "object",
-                "properties": {
-                    "EM": {
-                        "type": "string",
-                        "description": "Success message",
-                        "example": "Operation successful"
-                    },
-                    "DT": {
-                        "type": "object",
-                        "description": "Response data",
-                        "example": {}
-                    }
-                }
-            },
-            "ErrorResponse": {
-                "type": "object",
-                "properties": {
-                    "EM": {
-                        "type": "string",
-                        "description": "Error message",
-                        "example": "Validation error"
-                    },
-                    "DT": {
-                        "type": "object",
-                        "description": "Error details (usually empty)",
-                        "example": {}
-                    }
-                }
-            },
-            "User": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "description": "User ID"
-                    },
-                    "email": {
-                        "type": "string",
-                        "format": "email",
-                        "description": "User email"
-                    },
-                    "firstName": {
-                        "type": "string",
-                        "description": "First name"
-                    },
-                    "lastName": {
-                        "type": "string",
-                        "description": "Last name"
-                    },
-                    "role": {
-                        "type": "string",
-                        "enum": ["parent", "child"],
-                        "description": "User role"
-                    },
-                    "avatar": {
-                        "type": "string",
-                        "description": "Avatar URL"
-                    }
-                }
-            },
-            "Child": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "description": "Child ID"
-                    },
-                    "username": {
-                        "type": "string",
-                        "description": "Child username"
-                    },
-                    "firstName": {
-                        "type": "string",
-                        "description": "First name"
-                    },
-                    "lastName": {
-                        "type": "string",
-                        "description": "Last name"
-                    },
-                    "dob": {
-                        "type": "string",
-                        "format": "date",
-                        "description": "Date of birth"
-                    },
-                    "gender": {
-                        "type": "string",
-                        "enum": ["Male", "Female", "Other"],
-                        "description": "Gender"
-                    },
-                    "role": {
-                        "type": "string",
-                        "example": "child"
-                    },
-                    "parent_id": {
-                        "type": "integer",
-                        "description": "Parent ID"
-                    }
-                }
-            },
-            "Article": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "description": "Article ID"
-                    },
-                    "title": {
-                        "type": "string",
-                        "description": "Article title"
-                    },
-                    "content": {
-                        "type": "string",
-                        "description": "Article content"
-                    },
-                    "summary": {
-                        "type": "string",
-                        "description": "Article summary"
-                    },
-                    "image": {
-                        "type": "string",
-                        "description": "Article image URL"
-                    },
-                    "category_id": {
-                        "type": "integer",
-                        "description": "Category ID"
-                    },
-                    "published_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "description": "Publication date"
-                    }
-                }
-            },
-            "Category": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "description": "Category ID"
-                    },
-                    "name": {
-                        "type": "string",
-                        "description": "Category name"
-                    },
-                    "description": {
-                        "type": "string",
-                        "description": "Category description"
-                    }
-                }
-            },
-            "Comment": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "description": "Comment ID"
-                    },
-                    "child_id": {
-                        "type": "integer",
-                        "description": "ID of the child who made the comment"
-                    },
-                    "article_id": {
-                        "type": "integer",
-                        "description": "ID of the article being commented on"
-                    },
-                    "content": {
-                        "type": "string",
-                        "description": "Comment content"
-                    },
-                    "created_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "description": "Comment creation timestamp"
-                    },
-                    "updated_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "description": "Comment update timestamp"
-                    },
-                    "author": {
-                        "$ref": "#/components/schemas/User",
-                        "description": "Comment author information"
+                        "description": "User Info"
                     }
                 }
             }

@@ -19,8 +19,6 @@ export const requireAuth = (req, res, next) => {
         // 3. Verify token
         jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, async (err, decodedUser) => {
             if (err) {
-                console.log("JWT verify error:", err);
-
                 return res.status(401).json({
                     EM: "Access Token hết hạn hoặc không đúng",
                     DT: {}
@@ -50,7 +48,7 @@ export const requireAuth = (req, res, next) => {
         });
 
     } catch (error) {
-        console.log("Lỗi khi authorization", error);
+        console.log("Lỗi khi xác minh quyền người dùng", error);
         return res.status(500).json({
             EM: "Lỗi server",
             DT: {}

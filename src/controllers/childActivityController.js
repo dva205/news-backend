@@ -1,4 +1,5 @@
 import { logTime } from "../services/childActivityService.js";
+import { sendError, sendSuccess } from '../utils/ApiResponse.js'
 
 export const logChildActivity = async (req, res) => {
     try {
@@ -7,24 +8,25 @@ export const logChildActivity = async (req, res) => {
 
         const activeSecond = parseInt(activeSeconds);
 
+        if (!childId) {
+            return sendError(res, {
+                statusCode: 401,
+                message: "Nguời dùng không có quyền thực hiện hành động này"
+            });
+        }
+
         if (!activeSecond || activeSecond < 0) {
-            return res.status(400).json({
-                EM: "Số thời gian hoạt động không hợp lệ",
-                DT: {}
+            return sendError(res, {
+                statusCode: 400,
+                message: "Số thời gian hoạt động không hợp lệ"
             });
         }
 
         const data = await logTime(childId, activeSecond);
 
-        return res.status(200).json({
-            EM: "Log hoạt động con thành công",
-            DT: { data }
-        });
+        return sendSuccess(res, result, "Log hoạt động con thành công"), 200;
     } catch (error) {
         console.error("Lỗi khi gửi hoạt động của con:", error);
-        return res.status(error.statusCode || 500).json({
-            EM: error.message || "Lỗi server",
-            DT: {}
-        });
+        return sendError(res, error);
     }
 }

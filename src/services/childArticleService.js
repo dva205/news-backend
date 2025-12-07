@@ -1,6 +1,7 @@
 import { Op } from 'sequelize';
 import db from "../models/index.js";
 import { ApiError } from '../utils/ApiError.js';
+import { formatArticleResponse, formatCommentResponse, safeParseJSON } from '../helpers/formatArticle.js';
 
 
 export const getStrictRules = async (childId) => {
@@ -15,18 +16,18 @@ export const fetchAllCategories = async (childId) => {
     const strictRules = await getStrictRules(childId);
 
     // Query all categories
-    const categories = await db.Category.findAll({
-        attributes: ['name'],
+    let categories = await db.Category.findAll({
+        attributes: ['id', 'name'],
         order: [['name', 'ASC']]
     });
 
-    if (!categories || categories.length === 0) {
-        throw new ApiError("Không có category nào", 204);
-    }
+    if (!categories) return [];
 
     // Filter blocked categories if strict rules exist
     if (strictRules?.blocked_category) {
         const blockedCategoryArray = JSON.parse(strictRules.blocked_category);
+
+        console.log(typeof blockedCategoryArray, blockedCategoryArray, blockedCategoryArray.length)
 
         if (blockedCategoryArray.length > 0) {
             categories = categories.filter(cat =>
@@ -43,18 +44,22 @@ export const fetchNews = async (childId, page, limit, search, categoryName) => {
     const offset = (page - 1) * limit;
     const strictRules = await getStrictRules(childId);
 
+    const andCriteria = [];
     const whereConditions = {};
 
     // Search
     if (search) {
-        whereConditions[Op.or] = [
-            { title: { [Op.like]: `%${search}%` } },
-            { content: { [Op.like]: `%${search}%` } }
-        ];
+        andCriteria.push({
+            [Op.or]: [
+                { title: { [Op.like]: `%${search}%` } },
+                { content: { [Op.like]: `%${search}%` } }
+            ]
+        });
     }
 
     // Apply blocked_category
     if (strictRules?.blocked_category) {
+
         // convert sang array
         const blockedCategoryArray = JSON.parse(strictRules.blocked_category);
 
@@ -70,6 +75,7 @@ export const fetchNews = async (childId, page, limit, search, categoryName) => {
                 whereConditions.category_id = { [Op.notIn]: blockedIds };
             }
         }
+
     }
 
     // Apply blocked_keyword
@@ -79,8 +85,7 @@ export const fetchNews = async (childId, page, limit, search, categoryName) => {
 
         if (blockedKeywordArray.length > 0) {
             blockedKeywordArray.forEach(keyword => {
-                whereConditions[Op.and] = whereConditions[Op.and] || [];
-                whereConditions[Op.and].push({
+                andCriteria.push({
                     [Op.and]: [
                         { title: { [Op.notLike]: `%${keyword}%` } },
                         { content: { [Op.notLike]: `%${keyword}%` } }
@@ -88,6 +93,10 @@ export const fetchNews = async (childId, page, limit, search, categoryName) => {
                 });
             });
         }
+    }
+
+    if (andCriteria.length > 0) {
+        whereConditions[Op.and] = andCriteria;
     }
 
     // Include conditions for category join
@@ -107,24 +116,12 @@ export const fetchNews = async (childId, page, limit, search, categoryName) => {
         distinct: true
     });
 
-    if (!rows || rows.length === 0) {
-        throw new ApiError("Không có bài báo nào", 204);
-    }
-
     const totalPages = Math.ceil(count / limit);
 
     return {
-        articles: rows,
-        strictRules: strictRules ? {
-            hasRules: true,
-            blockedCategories: strictRules.blocked_category || [],
-            blockedKeywords: strictRules.blocked_keyword || [],
-            timeLimit: strictRules.time_limit_minutes
-        } : {
-            hasRules: false
-        },
+        articles: rows.map(article => formatArticleResponse(article)),
         pagination: {
-            totalArticles: count,
+            totalItems: count,
             totalPages,
             currentPage: page,
             limit
@@ -174,16 +171,21 @@ export const fetchArticleById = async (childId, articleId) => {
         }
     }
 
-    return article;
+    const savedRecord = await db.SavedArticle.findOne({
+        where: { child_id: childId, article_id: articleId }
+    });
+
+    return formatArticleResponse(article, !!savedRecord);
 };
 
 export const fetchAllComment = async (articleId, page, limit) => {
     const offset = (page - 1) * limit;
+
     const { count, rows } = await db.Comment.findAndCountAll({
         where: { article_id: articleId },
         offset,
         limit,
-        order: [['createdAt', 'DESC']],
+        order: [['created_at', 'DESC']],
         include: [{
             model: db.User, as: 'user', attributes: ['username', 'avatar_url']
         }]
@@ -192,10 +194,10 @@ export const fetchAllComment = async (articleId, page, limit) => {
     const totalPages = Math.ceil(count / limit);
 
     return {
-        comments: rows,
+        comments: rows.map(c => formatCommentResponse(c)),
         pagination: {
-            totalComment: count,
-            totalPages,
+            totalItems: count,
+            totalPages: totalPages,
             currentPage: page,
             limit
         }
@@ -203,51 +205,116 @@ export const fetchAllComment = async (articleId, page, limit) => {
 };
 
 export const createComment = async (childId, articleId, content) => {
-    // check if article exist
-    const articleExists = await db.Article.findOne({ where: { id: articleId } })
-    if (!articleExists) {
-        throw new ApiError('Bài viết không tồn tại hoặc đã bị xóa', 404)
+    // tìm báo để xem có bị cấm ko
+    const article = await db.Article.findOne({
+        where: { id: articleId },
+        include: [{
+            model: db.Category,
+            as: 'category',
+            attributes: ['name']
+        }]
+    });
+
+    if (!article) {
+        throw new ApiError('Bài báo không tồn tại hoặc đã bị xóa', 404)
     }
 
-    await db.Comment.create({
+    const strictRules = await getStrictRules(childId);
+
+    if (strictRules?.blocked_category) {
+        const blockedCategoryArray = JSON.parse(strictRules.blocked_category);
+        if (blockedCategoryArray.includes(article.category.name)) {
+            throw new ApiError("Bạn không thể bình luận vì bài viết thuộc danh mục bị hạn chế", 403);
+        }
+    }
+
+    if (strictRules?.blocked_keyword) {
+        const blockedKeywordArray = JSON.parse(strictRules.blocked_keyword);
+
+        const text = `${article.title} ${article.content}`.toLowerCase();
+        const hasBlockedKeyword = blockedKeywordArray.some(kw =>
+            text.includes(kw.toLowerCase())
+        );
+
+        if (hasBlockedKeyword) {
+            throw new ApiError("Bạn không thể bình luận vì bài viết chứa nội dung bị hạn chế", 403);
+        }
+    }
+
+    const newComment = await db.Comment.create({
         child_id: childId,
         article_id: articleId,
         content
     });
 
-    return;
+    const fullComment = await db.Comment.findByPk(newComment.id, {
+        include: [{
+            model: db.User,
+            as: 'user',
+            attributes: ['username', 'avatar_url']
+        }]
+    });
+
+    return formatCommentResponse(fullComment);
 };
 
 export const changeStatusSave = async (childId, articleId) => {
-    const existArticle = await db.Article.findOne({
-        where: { id: articleId }
+    const article = await db.Article.findOne({
+        where: { id: articleId },
+        include: [{
+            model: db.Category,
+            as: 'category',
+            attributes: ['name']
+        }]
     });
 
-    if (!existArticle) {
-        throw new ApiError('Không tìm thấy bài viết hoặc bài viết đã bị xóa', 400);
+    if (!article) {
+        throw new ApiError('Bài báo không tồn tại hoặc đã bị xóa', 404)
     }
 
-    const isSaved = await db.SavedArticle.findOne({
-        where: {
-            article_id: articleId,
-            child_id: childId
+    const strictRules = await getStrictRules(childId);
+
+    if (strictRules?.blocked_category) {
+        const blockedCategoryArray = JSON.parse(strictRules.blocked_category);
+        if (blockedCategoryArray.includes(article.category.name)) {
+            throw new ApiError("Bạn không thể lưu bài viết vì bài viết thuộc danh mục bị hạn chế", 403);
         }
+    }
+
+    if (strictRules?.blocked_keyword) {
+        const blockedKeywordArray = JSON.parse(strictRules.blocked_keyword);
+
+        const text = `${article.title} ${article.content}`.toLowerCase();
+        const hasBlockedKeyword = blockedKeywordArray.some(kw =>
+            text.includes(kw.toLowerCase())
+        );
+
+        if (hasBlockedKeyword) {
+            throw new ApiError("Bạn không thể lưu bài viết vì bài viết chứa nội dung bị hạn chế", 403);
+        }
+    }
+
+    const savedRecord = await db.SavedArticle.findOne({
+        where: { article_id: articleId, child_id: childId }
     });
 
-    let status = ''
+    let message = '';
+    let isSaved = false;
 
-    if (!isSaved) {
+    if (!savedRecord) {
         await db.SavedArticle.create({
             article_id: articleId,
             child_id: childId
-        })
-        status = 'Lưu bài báo thành công'
+        });
+        message = 'Đã lưu bài viết vào danh sách đọc sau';
+        isSaved = true;
     } else {
-        await isSaved.destroy();
-        status = 'Bỏ lưu thành công'
+        await savedRecord.destroy();
+        message = 'Đã bỏ lưu bài viết';
+        isSaved = false;
     }
 
-    return status;
+    return { message, isSaved };
 }
 
 export const fetchSavedArticle = async (childId, page, limit) => {
@@ -262,23 +329,20 @@ export const fetchSavedArticle = async (childId, page, limit) => {
         include: [{
             model: db.Article,
             as: 'article',
-            attributes: ['title', 'content', 'image_url', 'published_at'],
             include: [{
                 model: db.Category,
                 as: 'category',
                 attributes: ['name']
             }] // hiển thị ra card
-        }]
+        }],
     });
 
-    if (!rows || rows.length === 0) {
-        throw new ApiError("Không có bài báo nào", 204);
-    }
+    const articles = rows.map(item => formatArticleResponse(item, true));
 
     const totalPages = Math.ceil(count / limit);
 
     return {
-        articles: rows,
+        articles,
         pagination: {
             totalArticles: count,
             totalPages,

@@ -1,9 +1,17 @@
 import { fetchAllCategories, fetchNews, fetchArticleById, getStrictRules, fetchAllComment, createComment, changeStatusSave, fetchSavedArticle } from '../services/childArticleService.js';
+import { sendError, sendSuccess } from '../utils/ApiResponse.js';
 
 // lấy báo
 export const getArticles = async (req, res) => {
     try {
         const childId = req.user.id;
+
+        if (!childId) {
+            return sendError(res, {
+                statusCode: 401,
+                message: "Nguời dùng không có quyền thực hiện hành động này"
+            });
+        }
 
         // Get articles with filters
         const page = parseInt(req.query.page) || 1;
@@ -14,16 +22,10 @@ export const getArticles = async (req, res) => {
         const articles = await fetchNews(childId, page, limit, search, category);
 
 
-        return res.status(200).json({
-            EM: "Lấy danh sách bài báo thành công",
-            DT: articles
-        });
+        return sendSuccess(res, articles, "Lấy danh sách bài báo thành công", 200);
     } catch (error) {
         console.error("Lỗi khi lấy bài báo:", error);
-        return res.status(error.statusCode || 500).json({
-            EM: error.message || "Lỗi server",
-            DT: {}
-        });
+        return sendError(res, error);
     }
 };
 
@@ -32,18 +34,19 @@ export const getAllCategories = async (req, res) => {
     try {
         const childId = req.user.id;
 
+        if (!childId) {
+            return sendError(res, {
+                statusCode: 401,
+                message: "Nguời dùng không có quyền thực hiện hành động này"
+            });
+        }
+
         const categories = await fetchAllCategories(childId);
 
-        return res.status(200).json({
-            EM: "Lấy danh sách categories thành công",
-            DT: categories
-        });
+        return sendSuccess(res, categories, "Lấy danh sách categories thành công", 200);
     } catch (error) {
         console.error("Lỗi khi lấy categories:", error);
-        return res.status(error.statusCode || 500).json({
-            EM: error.message || "Lỗi server",
-            DT: {}
-        });
+        return sendError(res, error);
     }
 };
 
@@ -54,18 +57,19 @@ export const getArticleById = async (req, res) => {
         const childId = req.user.id;
         const articleId = req.params.id;
 
+        if (!childId) {
+            return sendError(res, {
+                statusCode: 401,
+                message: "Nguời dùng không có quyền thực hiện hành động này"
+            });
+        }
+
         const article = await fetchArticleById(childId, articleId);
 
-        return res.status(200).json({
-            EM: "Lấy bài báo thành công",
-            DT: article
-        });
+        return sendSuccess(res, article, "Lấy bài báo thành công", 200);
     } catch (error) {
         console.error("Lỗi khi lấy bài báo:", error);
-        return res.status(error.statusCode || 500).json({
-            EM: error.message || "Lỗi server",
-            DT: {}
-        });
+        return sendError(res, error);
     }
 };
 
@@ -73,18 +77,22 @@ export const getArticleById = async (req, res) => {
 export const getMyStrictRules = async (req, res) => {
     try {
         const childId = req.user.id;
+        if (!childId) {
+            return sendError(res, {
+                statusCode: 401,
+                message: "Nguời dùng không có quyền thực hiện hành động này"
+            });
+        }
+
+
         const rules = await getStrictRules(childId);
 
-        return res.status(200).json({
-            EM: "Lấy strict rules thành công",
-            DT: rules || { hasRules: false }
-        });
+        const data = rules || { hasRules: false };
+
+        return sendSuccess(res, data, "Lấy strict rules thành công", 200);
     } catch (error) {
         console.error("Lỗi khi lấy strict rules:", error);
-        return res.status(error.statusCode || 500).json({
-            EM: error.message || "Lỗi server",
-            DT: {}
-        });
+        return sendError(res, error);
     }
 };
 
@@ -92,22 +100,23 @@ export const getMyStrictRules = async (req, res) => {
 export const getAllComments = async (req, res) => {
     try {
         const articleId = req.params.id;
+        const childId = req.user.id;
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 5;
 
+        if (!childId) {
+            return sendError(res, {
+                statusCode: 401,
+                message: "Nguời dùng không có quyền thực hiện hành động này"
+            });
+        }
 
         const comment = await fetchAllComment(articleId, page, limit);
 
-        return res.status(200).json({
-            EM: "Lấy danh sách bình luận thành công",
-            DT: comment
-        })
+        return sendSuccess(res, comment, "Lấy danh sách bình luận thành công", 200);
     } catch (error) {
         console.error("Lỗi khi lấy comment:", error);
-        return res.status(500).json({
-            EM: error.message || "Lỗi server",
-            DT: {}
-        });
+        return sendError(res, error);
     }
 };
 
@@ -118,25 +127,26 @@ export const postComment = async (req, res) => {
         const articleId = req.params.id;
         const { content } = req.body;
 
-        if (!content || content.trim() === "") {
-            return res.status(400).json({
-                EM: "Nội dung bình luận không được để trống",
-                DT: {}
+        if (!childId) {
+            return sendError(res, {
+                statusCode: 401,
+                message: "Nguời dùng không có quyền thực hiện hành động này"
             });
         }
 
-        await createComment(childId, articleId, content);
+        if (!content || content.trim() === "") {
+            return sendError(res, {
+                statusCode: 400,
+                message: "Nội dung bình luận không được để trống"
+            });
+        }
 
-        return res.status(201).json({
-            EM: "Đăng bình luận thành công",
-            DT: {}
-        });
+        const newComment = await createComment(childId, articleId, content);
+
+        return sendSuccess(res, newComment, "Đăng bình luận thành công", 201);
     } catch (error) {
         console.error("Lỗi khi tạo comment:", error);
-        return res.status(error.statusCode || 500).json({
-            EM: error.message || "Lỗi server",
-            DT: {}
-        });
+        return sendError(res, error);
     }
 }
 
@@ -146,18 +156,19 @@ export const toggleSaveArticle = async (req, res) => {
         const childId = req.user.id;
         const articleId = req.params.id;
 
+        if (!childId) {
+            return sendError(res, {
+                statusCode: 401,
+                message: "Nguời dùng không có quyền thực hiện hành động này"
+            });
+        }
+
         const message = await changeStatusSave(childId, articleId);
 
-        return res.status(201).json({
-            EM: message,
-            DT: {}
-        });
+        return sendSuccess(res, null, message, 201);
     } catch (error) {
-        console.error("Lỗi khi tạo comment:", error);
-        return res.status(error.statusCode || 500).json({
-            EM: error.message || "Lỗi server",
-            DT: {}
-        });
+        console.error("Lỗi khi toggle save article:", error);
+        return sendError(res, error);
     }
 }
 
@@ -168,18 +179,19 @@ export const getSavedArticle = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
 
+        if (!childId) {
+            return sendError(res, {
+                statusCode: 401,
+                message: "Nguời dùng không có quyền thực hiện hành động này"
+            });
+        }
+
         const articles = await fetchSavedArticle(childId, page, limit);
 
-        return res.status(200).json({
-            EM: "Lấy bài báo đã lưu thành công",
-            DT: articles
-        })
+        return sendSuccess(res, articles, "Lấy bài báo đã lưu thành công", 200);
     } catch (error) {
         console.error("Lỗi khi lấy bài báo đã lưu:", error);
-        return res.status(error.statusCode || 500).json({
-            EM: error.message || "Lỗi server",
-            DT: {}
-        });
+        return sendError(res, error);
     }
 }
 

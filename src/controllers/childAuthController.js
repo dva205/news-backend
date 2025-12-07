@@ -1,14 +1,14 @@
 import { validateInviteCode, signInChild, signOutChild, refreshChildToken, activeChildAccount } from '../services/childAuthService.js';
-
+import { sendSuccess, sendError } from '../utils/ApiResponse.js';
 
 export const validateInvite = async (req, res) => {
     try {
         const code = req.query?.code;
 
         if (!code) {
-            return res.status(400).json({
-                EM: "Thiếu mã mời",
-                DT: {}
+            return sendError(res, {
+                statusCode: 400,
+                message: "Thiếu mã mời"
             });
         }
 
@@ -16,17 +16,11 @@ export const validateInvite = async (req, res) => {
         const data = await validateInviteCode(code);
 
         // 3. Trả Response 
-        return res.status(200).json({
-            EM: "Link hợp lệ",
-            DT: data
-        });
+        return sendSuccess(res, data, "Link hợp lệ", 200);
 
     } catch (error) {
         console.error("Lỗi khi validate link", error);
-        return res.status(error.statusCode || 500).json({
-            EM: error.message || "Lỗi server",
-            DT: {}
-        });
+        return sendError(res, error);
     }
 }
 
@@ -37,9 +31,9 @@ export const activateChildAccount = async (req, res) => {
 
         // 1. Validate
         if (!password || !code) {
-            return res.status(400).json({
-                EM: "Code và Password không được để trống",
-                DT: {}
+            return sendError(res, {
+                statusCode: 400,
+                message: "Mã kích hoạt tài khoản và mật khẩu không được để trống"
             });
         }
 
@@ -47,17 +41,11 @@ export const activateChildAccount = async (req, res) => {
         const data = await activeChildAccount(code, password);
 
         // 3. Trả Response 
-        return res.status(200).json({
-            EM: "Kích hoạt thành công",
-            DT: data
-        });
+        return sendSuccess(res, data, "Kích hoạt thành công", 200);
 
     } catch (error) {
         console.log("Lỗi khi activate child account", error);
-        return res.status(error.statusCode || 500).json({
-            EM: error.message || "Lỗi server",
-            DT: {}
-        });
+        return sendError(res, error);
     }
 }
 
@@ -68,9 +56,9 @@ export const childSignIn = async (req, res) => {
 
         // 1. Validate
         if (!username || !password) {
-            return res.status(400).json({
-                EM: "Username và password không được để trống",
-                DT: {}
+            return sendError(res, {
+                statusCode: 400,
+                message: "Tên đăng nhập và mật khẩu không được để trống"
             });
         }
 
@@ -86,19 +74,15 @@ export const childSignIn = async (req, res) => {
         });
 
         // 4. Trả Response
-        return res.status(200).json({
-            EM: "Đăng nhập thành công",
-            DT: {
-                ...data.user,
-                accessToken: data.accessToken
-            }
-        });
+        const responseData = {
+            ...data.user,
+            accessToken: data.accessToken
+        };
+
+        return sendSuccess(res, responseData, "Đăng nhập thành công", 200);
     } catch (error) {
         console.log("Lỗi khi child đăng nhập", error);
-        return res.status(error.statusCode || 500).json({
-            EM: error.message || "Lỗi server",
-            DT: {}
-        });
+        return sendError(res, error);
     }
 }
 
@@ -109,9 +93,9 @@ export const childSignOut = async (req, res) => {
         const refreshToken = req.cookies?.refreshToken;
 
         if (!refreshToken) {
-            return res.status(404).json({
-                EM: "Thiếu refresh token",
-                DT: {}
+            return sendError(res, {
+                statusCode: 401,
+                message: "Thiếu refresh token"
             });
         }
 
@@ -126,17 +110,11 @@ export const childSignOut = async (req, res) => {
         });
 
         // 4. Trả Response
-        return res.status(200).json({
-            EM: "Đăng xuất thành công",
-            DT: {}
-        });
+        return sendSuccess(res, null, "Đăng xuất thành công", 200);
 
     } catch (error) {
         console.log("Lỗi khi child sign out", error);
-        return res.status(500).json({
-            EM: "Lỗi server",
-            DT: {}
-        });
+        return sendError(res, error);
     }
 }
 
@@ -147,9 +125,9 @@ export const refreshToken = async (req, res) => {
         const token = req.cookies?.refreshToken;
 
         if (!token) {
-            return res.status(401).json({
-                EM: "Token không tồn tại",
-                DT: {}
+            return sendError(res, {
+                statusCode: 401,
+                message: "Token không tồn tại"
             });
         }
 
@@ -157,16 +135,10 @@ export const refreshToken = async (req, res) => {
         const data = await refreshChildToken(token);
 
         // 3. Trả Response
-        return res.status(200).json({
-            EM: "Làm mới token thành công",
-            DT: data
-        });
+        return sendSuccess(res, data, "Làm mới token thành công", 200);
 
     } catch (error) {
         console.log("Lỗi khi gọi refreshToken", error);
-        return res.status(error.statusCode || 500).json({
-            EM: error.message || "Lỗi server",
-            DT: {}
-        });
+        return sendError(res, error);
     }
 }

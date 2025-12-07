@@ -5,7 +5,6 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-
 import parentAuthRoute from './routes/parentAuthRoute.js';
 import parentChildManagementRoute from './routes/parentChildManagementRoute.js';
 import childAuthRoute from './routes/childAuthRoute.js';
@@ -13,14 +12,11 @@ import childArticleRoute from './routes/childArticleRoute.js';
 import publicArticleRoute from './routes/publicArticleRoute.js';
 import getAccount from './routes/getAccount.js';
 import childActivityRoute from './routes/childActivityRoute.js'
-
 import { requireAuth } from './middlewares/requireAuth.js';
 import { requireParent } from './middlewares/requireParent.js';
-
 import { cronArticle } from './cron/cronArticle.js';
 import { requireChild } from './middlewares/requireChild.js';
 import { checkTime } from './middlewares/checkTime.js'
-
 import fs from 'fs';
 import swaggerUi from 'swagger-ui-express';
 

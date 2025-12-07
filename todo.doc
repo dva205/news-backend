@@ -1,3 +1,12 @@
-fe: validate dob, gender khi bố mẹ tạo tài khoản cho con
+fe: validate dob khi bố mẹ tạo tài khoản cho con
+lỗi ko hiển thị giới tính của con sau khi bố mẹ đã tạo tài khoản
+gọi api set strict rule(time, blocked_categories, blocked_keyword)
+
+trẻ:
+gọi api get all categories để lấy tất cả các mục báo, get 1 báo, get tất cả các báo (phân trang) nhớ check xem có ảnh ko, từng trang báo thì có phần comment ở dưới, save báo, lấy tất cả bài báo đã lưu
+
 
 cache phần báo
+
+change: signUp thành công trả về 201
+

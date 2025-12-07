@@ -4,6 +4,7 @@ import db from '../models/index.js';
 import crypto from "crypto";
 import { Op } from "sequelize";
 import { ApiError } from '../utils/ApiError.js';
+import { formatChildAuthResponse } from '../helpers/formatChildAuthResponse.js';
 
 export const validateInviteCode = async (code) => {
     // 1. Tìm invite
@@ -27,16 +28,23 @@ export const validateInviteCode = async (code) => {
 
     // 4. Lấy thông tin phụ huynh (người mời)
     const parent = await db.User.findByPk(invite.parent_id);
-    if (!parent) {
-        // Lỗi hiếm gặp: invite tồn tại nhưng parent bị xóa
-        throw new ApiError("Không tìm thấy người mời", 404);
+    const child = await db.User.findByPk(invite.child_id);
+
+    if (!parent || !child) {
+        throw new ApiError("Thông tin người mời hoặc người được mời không tồn tại", 404);
     }
 
     // 5. Trả về thông tin phụ huynh
     return {
+        inviteCode: code,
         parent: {
             id: parent.id,
-            display_name: parent.display_name
+            displayName: parent.display_name
+        },
+        child: {
+            id: child.id,
+            displayName: child.display_name,
+            username: child.username
         }
     };
 }
@@ -83,13 +91,7 @@ export const activeChildAccount = async (code, password) => {
         await t.commit();
 
         // 8. Trả về thông tin child
-        return {
-            child: {
-                id: child.id,
-                username: child.username,
-                display_name: child.display_name
-            }
-        };
+        return formatChildAuthResponse(child);
 
     } catch (error) {
         // 9. Nếu có lỗi, rollback tất cả
@@ -144,12 +146,7 @@ export const signInChild = async (username, password) => {
 
     // 6. Trả về dữ liệu cho Controller
     return {
-        user: {
-            id: existChild.id,
-            username: existChild.username,
-            role: existChild.role,
-            display_name: existChild.display_name,
-        },
+        user: formatChildAuthResponse(existChild),
         accessToken,
         refreshToken,
         REFRESH_TOKEN_TTL
