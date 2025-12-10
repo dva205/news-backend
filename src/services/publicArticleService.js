@@ -2,6 +2,7 @@ import { Op } from "sequelize";
 import db from "../models/index.js";
 import { ApiError } from "../utils/ApiError.js";
 import { formatPublicArticle } from "../helpers/formatPublicArticle.js";
+import { formatCommentResponse } from '../helpers/formatCommentResponse.js'
 
 // get all categories
 export const fetchAllCategories = async () => {
@@ -36,7 +37,7 @@ export const fetchNews = async (page, limit, search, categoryName) => {
     const includeConditions = {
         model: db.Category,
         as: 'category',
-        attributes: ['name']
+        attributes: ['id', 'name']
     };
 
     // Filter by category name if provided
@@ -83,4 +84,30 @@ export const fetchArticleById = async (articleId) => {
     }
 
     return formatPublicArticle(article);
+};
+
+export const fetchAllComment = async (articleId, page, limit) => {
+    const offset = (page - 1) * limit;
+
+    const { count, rows } = await db.Comment.findAndCountAll({
+        where: { article_id: articleId },
+        offset,
+        limit,
+        order: [['created_at', 'DESC']],
+        include: [{
+            model: db.User, as: 'user', attributes: ['username', 'avatar_url']
+        }]
+    });
+
+    const totalPages = Math.ceil(count / limit);
+
+    return {
+        comments: rows.map(c => formatCommentResponse(c)),
+        pagination: {
+            totalItems: count,
+            totalPages: totalPages,
+            currentPage: page,
+            limit
+        }
+    }
 };

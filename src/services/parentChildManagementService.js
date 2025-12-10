@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { ApiError } from '../utils/ApiError.js';
 import { Op } from 'sequelize'
 import { formatChildResponse } from '../helpers/formatChildResponse.js';
+import { fillMissingDates, getDateRange } from '../helpers/chartDraw.js';
 
 
 export const createChildAccount = async (parentId, childData) => {
@@ -174,31 +175,11 @@ export const getTimeLimit = async (childId, parentId, timeRange) => {
         throw new ApiError("Không tìm thấy tài khoản con hoặc bạn không có quyền sửa", 403)
     }
 
-    // date range for chart
-    let startDate, endDate;
-    const today = new Date();
-
-    if (timeRange === 'today') {
-        startDate = endDate = today.toISOString().split('T')[0];
+    const dateRangeObj = getDateRange(timeRange);
+    if (!dateRangeObj) {
+        throw new ApiError("Thời gian không hợp lệ", 404);
     }
-
-    else if (timeRange === 'week') {
-        startDate = new Date(today);
-        startDate.setDate(today.getDate() - 7);
-        startDate = startDate.toISOString().split('T')[0];
-        endDate = today.toISOString().split('T')[0];
-    }
-
-    else if (timeRange === 'month') {
-        startDate = new Date(today);
-        startDate.setDate(today.getDate() - 30);
-        startDate = startDate.toISOString().split('T')[0];
-        endDate = today.toISOString().split('T')[0];
-    }
-
-    else {
-        throw new ApiError("Thời gian không hợp lệ", 404)
-    }
+    const { startDate, endDate } = dateRangeObj;
 
     // Query và tính tổng theo ngày
     const dailyStats = await db.UsageLog.findAll({
@@ -217,12 +198,7 @@ export const getTimeLimit = async (childId, parentId, timeRange) => {
         raw: true
     });
 
-    // format 
-    const stats = dailyStats.map(day => ({
-        date: day.session_date,
-        minutes: Math.floor(day.total_seconds / 60),
-        hours: (day.total_seconds / 3600).toFixed(2)
-    }));
+    const formattedStats = fillMissingDates(dailyStats, startDate, endDate);
 
     const totalMinutes = dailyStats.reduce((sum, day) => sum + Math.floor(day.total_seconds / 60), 0)
 
@@ -231,7 +207,7 @@ export const getTimeLimit = async (childId, parentId, timeRange) => {
         childId: child.id,
         childName: child.display_name,
         range: timeRange,
-        chartData: stats,
+        chartData: formattedStats,
         totalMinutes
     };
 }

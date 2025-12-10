@@ -21,7 +21,8 @@ export const formatArticleResponse = (article, isSaved = false) => {
         imageUrl: data.image_url,
         ageBucket: data.age_bucket || null,
         categoryName: data.category?.name,
-        publishedAt: data.published_at,
+        categoryId: data.category?.id,
+        publishedAt: data.published_at || null,
         sourceUrl: data.source_url || null,
         isSaved: isSaved || false // Flag quan trọng cho FE
     };

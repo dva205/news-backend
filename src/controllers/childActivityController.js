@@ -24,7 +24,7 @@ export const logChildActivity = async (req, res) => {
 
         const data = await logTime(childId, activeSecond);
 
-        return sendSuccess(res, result, "Log hoạt động con thành công"), 200;
+        return sendSuccess(res, data, "Log hoạt động con thành công", 200);
     } catch (error) {
         console.error("Lỗi khi gửi hoạt động của con:", error);
         return sendError(res, error);

@@ -137,8 +137,22 @@ export const updateParentProfile = async (parentId, firstName, lastName, email, 
     })
 
     if (!parent) {
-        throw new ApiError("Không tìm thấy tài khoản phụ huynh hoặc bạn không có quyền sửa", 405);
+        throw new ApiError("Không tìm thấy tài khoản phụ huynh", 404);
     }
+
+    if (email && email !== parent.email) {
+        const existingUser = await db.User.findOne({
+            where: {
+                email: email,
+                id: { [Op.ne]: parentId } // Op.ne = Not Equal (Khác ID của mình)
+            }
+        });
+
+        if (existingUser) {
+            throw new ApiError("Email này đã được sử dụng bởi người khác", 409); // 409 Conflict
+        }
+    }
+
 
     // Prepare update data
     const updateData = {

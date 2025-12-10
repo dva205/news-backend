@@ -106,7 +106,7 @@ export const refreshToken = async (req, res) => {
         const data = await refreshParentToken(token);
 
         // 3. Trả Response
-        return sendSuccess(res, { accessToken: data.accessToken }, "Làm mới token thành công", 200);
+        return sendSuccess(res, { accessToken: data.accessToken }, null, 200);
 
     } catch (error) {
         console.error("Lỗi khi gọi refreshToken", error);

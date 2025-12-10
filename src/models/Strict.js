@@ -28,7 +28,6 @@ module.exports = (sequelize, DataTypes) => {
 
             time_limit_minutes: {
                 type: DataTypes.INTEGER,
-                unique: true,
                 allowNull: true,
             },
 

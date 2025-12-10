@@ -10,7 +10,6 @@ export const getStrictRules = async (childId) => {
     });
 };
 
-
 export const fetchAllCategories = async (childId) => {
     // Get strict rules
     const strictRules = await getStrictRules(childId);
@@ -39,7 +38,6 @@ export const fetchAllCategories = async (childId) => {
     return categories;
 };
 
-
 export const fetchNews = async (childId, page, limit, search, categoryName) => {
     const offset = (page - 1) * limit;
     const strictRules = await getStrictRules(childId);
@@ -55,6 +53,18 @@ export const fetchNews = async (childId, page, limit, search, categoryName) => {
                 { content: { [Op.like]: `%${search}%` } }
             ]
         });
+    }
+
+    // Include conditions for category join
+    const includeConditions = {
+        model: db.Category,
+        as: 'category',
+        attributes: ['id', 'name']
+    };
+
+    if (categoryName) {
+        includeConditions.where = { name: categoryName };
+        includeConditions.required = true; // INNER JOIN
     }
 
     // Apply blocked_category
@@ -99,12 +109,7 @@ export const fetchNews = async (childId, page, limit, search, categoryName) => {
         whereConditions[Op.and] = andCriteria;
     }
 
-    // Include conditions for category join
-    const includeConditions = {
-        model: db.Category,
-        as: 'category',
-        attributes: ['name']
-    };
+
 
     // Query
     const { count, rows } = await db.Article.findAndCountAll({
@@ -128,7 +133,6 @@ export const fetchNews = async (childId, page, limit, search, categoryName) => {
         }
     };
 };
-
 
 export const fetchArticleById = async (childId, articleId) => {
     const strictRules = await getStrictRules(childId);
@@ -176,32 +180,6 @@ export const fetchArticleById = async (childId, articleId) => {
     });
 
     return formatArticleResponse(article, !!savedRecord);
-};
-
-export const fetchAllComment = async (articleId, page, limit) => {
-    const offset = (page - 1) * limit;
-
-    const { count, rows } = await db.Comment.findAndCountAll({
-        where: { article_id: articleId },
-        offset,
-        limit,
-        order: [['created_at', 'DESC']],
-        include: [{
-            model: db.User, as: 'user', attributes: ['username', 'avatar_url']
-        }]
-    });
-
-    const totalPages = Math.ceil(count / limit);
-
-    return {
-        comments: rows.map(c => formatCommentResponse(c)),
-        pagination: {
-            totalItems: count,
-            totalPages: totalPages,
-            currentPage: page,
-            limit
-        }
-    }
 };
 
 export const createComment = async (childId, articleId, content) => {

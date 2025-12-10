@@ -1,4 +1,4 @@
-import { fetchAllCategories, fetchNews, fetchArticleById } from "../services/publicArticleService.js";
+import { fetchAllCategories, fetchNews, fetchArticleById, fetchAllComment } from "../services/publicArticleService.js";
 import { sendSuccess, sendError } from '../utils/ApiResponse.js';
 
 // lấy báo
@@ -40,6 +40,22 @@ export const getArticleById = async (req, res) => {
         return sendSuccess(res, article, "Lấy chi tiết bài báo thành công", 200);
     } catch (error) {
         console.error("Lỗi khi lấy bài báo:", error);
+        return sendError(res, error);
+    }
+};
+
+// lấy commment
+export const getAllComments = async (req, res) => {
+    try {
+        const articleId = req.params.id;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 5;
+
+        const comment = await fetchAllComment(articleId, page, limit);
+
+        return sendSuccess(res, comment, "Lấy danh sách bình luận thành công", 200);
+    } catch (error) {
+        console.error("Lỗi khi lấy comment:", error);
         return sendError(res, error);
     }
 };

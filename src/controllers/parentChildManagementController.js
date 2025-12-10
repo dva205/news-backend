@@ -27,13 +27,7 @@ export const createAccountWithInviteLink = async (req, res) => {
 
         // 4. Xử lý Response 
         const responseData = {
-            id: data.newChild.id,
-            username: data.newChild.username,
-            role: data.newChild.role,
-            display_name: data.newChild.display_name,
-            dob: data.newChild.dob,
-            gender: data.newChild.gender,
-            parent_id: data.newChild.parent_id,
+            newChild: data.newChild,
             newInvite: data.newInvite
         };
 

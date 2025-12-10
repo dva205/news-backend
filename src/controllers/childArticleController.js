@@ -1,4 +1,4 @@
-import { fetchAllCategories, fetchNews, fetchArticleById, getStrictRules, fetchAllComment, createComment, changeStatusSave, fetchSavedArticle } from '../services/childArticleService.js';
+import { fetchAllCategories, fetchNews, fetchArticleById, getStrictRules, createComment, changeStatusSave, fetchSavedArticle } from '../services/childArticleService.js';
 import { sendError, sendSuccess } from '../utils/ApiResponse.js';
 
 // lấy báo
@@ -92,30 +92,6 @@ export const getMyStrictRules = async (req, res) => {
         return sendSuccess(res, data, "Lấy strict rules thành công", 200);
     } catch (error) {
         console.error("Lỗi khi lấy strict rules:", error);
-        return sendError(res, error);
-    }
-};
-
-// lấy commment
-export const getAllComments = async (req, res) => {
-    try {
-        const articleId = req.params.id;
-        const childId = req.user.id;
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 5;
-
-        if (!childId) {
-            return sendError(res, {
-                statusCode: 401,
-                message: "Nguời dùng không có quyền thực hiện hành động này"
-            });
-        }
-
-        const comment = await fetchAllComment(articleId, page, limit);
-
-        return sendSuccess(res, comment, "Lấy danh sách bình luận thành công", 200);
-    } catch (error) {
-        console.error("Lỗi khi lấy comment:", error);
         return sendError(res, error);
     }
 };

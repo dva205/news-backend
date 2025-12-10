@@ -6,7 +6,8 @@ export const formatPublicArticle = (article) => {
         ageBucket: article.age_bucket || null,
         imageUrl: article.image_url || null,
         categoryName: article.category?.name,
-        publishedAt: article.published_at,
+        categoryId: article.category?.id,
+        publishedAt: article.published_at || null,
         sourceUrl: article.source_url || null
     };
 };
