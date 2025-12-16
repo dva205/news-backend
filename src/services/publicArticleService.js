@@ -2,7 +2,7 @@ import { Op } from "sequelize";
 import db from "../models/index.js";
 import { ApiError } from "../utils/ApiError.js";
 import { formatPublicArticle } from "../helpers/formatPublicArticle.js";
-import { formatCommentResponse } from '../helpers/formatCommentResponse.js'
+import { formatCommentResponse } from '../helpers/formatArticle.js'
 
 // get all categories
 export const fetchAllCategories = async () => {
@@ -96,7 +96,7 @@ export const fetchAllComment = async (articleId, page, limit) => {
         order: [['created_at', 'DESC']],
         include: [{
             model: db.User, as: 'user', attributes: ['username', 'avatar_url']
-        }]
+        }],
     });
 
     const totalPages = Math.ceil(count / limit);

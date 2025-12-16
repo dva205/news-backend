@@ -91,7 +91,7 @@ export const activeChildAccount = async (code, password) => {
         await t.commit();
 
         // 8. Trả về thông tin child
-        return formatChildAuthResponse(child);
+        return;
 
     } catch (error) {
         // 9. Nếu có lỗi, rollback tất cả
@@ -183,7 +183,7 @@ export const refreshChildToken = async (refreshToken) => {
     });
 
     if (!session) {
-        throw new ApiError("Token không hợp lệ hoặc đã hết hạn", 403);
+        throw new ApiError("Refresh Token không hợp lệ hoặc đã hết hạn", 403);
     }
 
     // 2. Lấy thông tin user

@@ -1,14 +1,4 @@
-export const safeParseJSON = (data) => {
-    if (!data) return [];
-    if (Array.isArray(data)) return data;
-    try {
-        const parsed = JSON.parse(data);
-        if (Array.isArray(parsed)) return parsed;
-        return [parsed];
-    } catch (e) {
-        return [data];
-    }
-};
+import { formatDate } from './formatDate.js'
 
 export const formatArticleResponse = (article, isSaved = false) => {
     // Nếu article lấy từ bảng SavedArticle (bị lồng bên trong)
@@ -22,7 +12,7 @@ export const formatArticleResponse = (article, isSaved = false) => {
         ageBucket: data.age_bucket || null,
         categoryName: data.category?.name,
         categoryId: data.category?.id,
-        publishedAt: data.published_at || null,
+        publishedAt: formatDate(data.published_at) || null,
         sourceUrl: data.source_url || null,
         isSaved: isSaved || false // Flag quan trọng cho FE
     };

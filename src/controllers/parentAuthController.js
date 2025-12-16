@@ -77,7 +77,7 @@ export const parentSignOut = async (req, res) => {
         res.clearCookie("refreshToken", {
             httpOnly: true,
             // secure: true,
-            sameSite: "none"
+            sameSite: "lax"
         });
 
         // 4. Trả Response

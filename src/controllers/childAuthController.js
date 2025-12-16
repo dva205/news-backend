@@ -38,10 +38,10 @@ export const activateChildAccount = async (req, res) => {
         }
 
         // 2. Gọi Service
-        const data = await activeChildAccount(code, password);
+        await activeChildAccount(code, password);
 
         // 3. Trả Response 
-        return sendSuccess(res, data, "Kích hoạt thành công", 200);
+        return sendSuccess(res, null, "Kích hoạt thành công", 204);
 
     } catch (error) {
         console.log("Lỗi khi activate child account", error);
@@ -68,18 +68,13 @@ export const childSignIn = async (req, res) => {
         // 3. Đặt Cookie 
         res.cookie('refreshToken', data.refreshToken, {
             httpOnly: true,
-            // secure: true,
-            sameSite: "none",
+            secure: false,
+            sameSite: "lax",
             maxAge: data.REFRESH_TOKEN_TTL
         });
 
-        // 4. Trả Response
-        const responseData = {
-            ...data.user,
-            accessToken: data.accessToken
-        };
 
-        return sendSuccess(res, responseData, "Đăng nhập thành công", 200);
+        return sendSuccess(res, { accessToken: data.accessToken }, "Đăng nhập thành công", 200);
     } catch (error) {
         console.log("Lỗi khi child đăng nhập", error);
         return sendError(res, error);
@@ -106,7 +101,7 @@ export const childSignOut = async (req, res) => {
         res.clearCookie("refreshToken", {
             httpOnly: true,
             // secure: true,
-            sameSite: "none"
+            sameSite: "lax"
         });
 
         // 4. Trả Response

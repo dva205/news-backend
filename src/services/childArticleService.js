@@ -1,7 +1,7 @@
 import { Op } from 'sequelize';
 import db from "../models/index.js";
 import { ApiError } from '../utils/ApiError.js';
-import { formatArticleResponse, formatCommentResponse, safeParseJSON } from '../helpers/formatArticle.js';
+import { formatArticleResponse, formatCommentResponse } from '../helpers/formatArticle.js';
 
 
 export const getStrictRules = async (childId) => {
@@ -25,9 +25,6 @@ export const fetchAllCategories = async (childId) => {
     // Filter blocked categories if strict rules exist
     if (strictRules?.blocked_category) {
         const blockedCategoryArray = JSON.parse(strictRules.blocked_category);
-
-        console.log(typeof blockedCategoryArray, blockedCategoryArray, blockedCategoryArray.length)
-
         if (blockedCategoryArray.length > 0) {
             categories = categories.filter(cat =>
                 !blockedCategoryArray.includes(cat.name)
@@ -59,7 +56,7 @@ export const fetchNews = async (childId, page, limit, search, categoryName) => {
     const includeConditions = {
         model: db.Category,
         as: 'category',
-        attributes: ['id', 'name']
+        attributes: ['id', 'name'],
     };
 
     if (categoryName) {
@@ -69,14 +66,13 @@ export const fetchNews = async (childId, page, limit, search, categoryName) => {
 
     // Apply blocked_category
     if (strictRules?.blocked_category) {
-
         // convert sang array
         const blockedCategoryArray = JSON.parse(strictRules.blocked_category);
 
         if (blockedCategoryArray.length > 0) {
             const blockedCategories = await db.Category.findAll({
                 where: { name: { [Op.in]: blockedCategoryArray } },  // Tìm categories có tên trong array
-                attributes: ['id'] // lấy id
+                attributes: ['id'], // lấy id,
             });
 
             const blockedIds = blockedCategories.map(c => c.id);
@@ -97,8 +93,8 @@ export const fetchNews = async (childId, page, limit, search, categoryName) => {
             blockedKeywordArray.forEach(keyword => {
                 andCriteria.push({
                     [Op.and]: [
-                        { title: { [Op.notLike]: `%${keyword}%` } },
-                        { content: { [Op.notLike]: `%${keyword}%` } }
+                        { title: { [Op.notLike]: `% ${keyword} %` } },
+                        { content: { [Op.notLike]: `% ${keyword} %` } }
                     ]
                 });
             });
@@ -109,8 +105,6 @@ export const fetchNews = async (childId, page, limit, search, categoryName) => {
         whereConditions[Op.and] = andCriteria;
     }
 
-
-
     // Query
     const { count, rows } = await db.Article.findAndCountAll({
         where: whereConditions,
@@ -118,13 +112,29 @@ export const fetchNews = async (childId, page, limit, search, categoryName) => {
         order: [['published_at', 'DESC']],
         offset,
         limit,
-        distinct: true
     });
+
+    // check save once by 
+    const articleIds = rows.map(article => article.id);
+    let savedArticleIds = new Set();
+
+    if (articleIds.length > 0) {
+        const savedRecords = await db.SavedArticle.findAll({
+            where: {
+                child_id: childId,
+                article_id: { [Op.in]: articleIds } // Chỉ check trong danh sách bài hiện tại
+            },
+            attributes: ['article_id'],
+        });
+
+        // Tạo một Set chứa các ID đã lưu để check cho nhanh (O(1))
+        savedRecords.forEach(record => savedArticleIds.add(record.article_id));
+    }
 
     const totalPages = Math.ceil(count / limit);
 
     return {
-        articles: rows.map(article => formatArticleResponse(article)),
+        articles: rows.map(article => formatArticleResponse(article, savedArticleIds.has(article.id))),
         pagination: {
             totalItems: count,
             totalPages,

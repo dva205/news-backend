@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import db from "../models/index.js";
+import { sendError } from "../utils/ApiResponse.js";
 
 export const requireAuth = (req, res, next) => {
     try {
@@ -8,9 +9,9 @@ export const requireAuth = (req, res, next) => {
 
         // 2. Kiểm tra có header không, và có đúng định dạng "Bearer <token>" không
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
-            return res.status(401).json({
-                EM: "Thiếu Authorization header hoặc token không hợp lệ",
-                DT: {}
+            return sendError(res, {
+                statusCode: 401,
+                message: "Thiếu authorization header hoặc token ko hợp lệ"
             });
         }
 
@@ -19,9 +20,9 @@ export const requireAuth = (req, res, next) => {
         // 3. Verify token
         jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, async (err, decodedUser) => {
             if (err) {
-                return res.status(401).json({
-                    EM: "Access Token hết hạn hoặc không đúng",
-                    DT: {}
+                return sendError(res, {
+                    statusCode: 401,
+                    message: "Access Token hết hạn hoặc không đúng"
                 });
             }
 

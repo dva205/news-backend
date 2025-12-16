@@ -1,3 +1,5 @@
+import { formatDate } from './formatDate.js'
+
 export const formatPublicArticle = (article) => {
     return {
         id: article.id,
@@ -7,7 +9,7 @@ export const formatPublicArticle = (article) => {
         imageUrl: article.image_url || null,
         categoryName: article.category?.name,
         categoryId: article.category?.id,
-        publishedAt: article.published_at || null,
+        publishedAt: formatDate(article.published_at) || null,
         sourceUrl: article.source_url || null
     };
 };

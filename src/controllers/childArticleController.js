@@ -139,9 +139,9 @@ export const toggleSaveArticle = async (req, res) => {
             });
         }
 
-        const message = await changeStatusSave(childId, articleId);
+        const data = await changeStatusSave(childId, articleId);
 
-        return sendSuccess(res, null, message, 201);
+        return sendSuccess(res, data.isSaved, data.message, 201);
     } catch (error) {
         console.error("Lỗi khi toggle save article:", error);
         return sendError(res, error);

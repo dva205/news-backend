@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.post('/signup', parentSignUp)
 router.post('/signin', parentSignIn)
-router.post('/signout', requireAuth, parentSignOut)
+router.post('/signout', requireAuth, requireParent, parentSignOut)
 router.post('/refresh', refreshToken)
 router.patch('/update', requireAuth, requireParent, uploadAvatar.single('avatar'), updateProfile)
 
