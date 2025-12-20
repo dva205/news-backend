@@ -18,12 +18,12 @@ export const validateInviteCode = async (code) => {
 
     // 2. Kiểm tra hết hạn
     if (invite.expires_at < new Date()) {
-        throw new ApiError("Link đã hết hạn", 400);
+        throw new ApiError("Link đã hết hạn", 410);
     }
 
     // 3. Kiểm tra đã dùng chưa
     if (invite.used) {
-        throw new ApiError("Link này đã được sử dụng", 400);
+        throw new ApiError("Link này đã được sử dụng", 410);
     }
 
     // 4. Lấy thông tin phụ huynh (người mời)
@@ -113,7 +113,7 @@ export const signInChild = async (username, password) => {
     });
 
     if (!existChild) {
-        throw new ApiError("Username hoặc password không chính xác", 404);
+        throw new ApiError("Username hoặc password không chính xác", 401);
     }
 
     // Check if account is activated (has password)
@@ -124,7 +124,7 @@ export const signInChild = async (username, password) => {
     // 2. So sánh password
     const isCorrectPassword = await bcrypt.compare(password, existChild.password_hashed);
     if (!isCorrectPassword) {
-        throw new ApiError("Username hoặc mật khẩu không chính xác", 400);
+        throw new ApiError("Username hoặc mật khẩu không chính xác", 401);
     }
 
     // 3. Tạo Access Token
@@ -135,12 +135,12 @@ export const signInChild = async (username, password) => {
 
     // 4. Tạo Refresh Token (Raw)
     const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000;
-    const refreshToken = crypto.randomBytes(64).toString("hex");
+    const refreshChildToken = crypto.randomBytes(64).toString("hex");
 
     // 5. Tạo Session (Lưu token raw)
     await db.Session.create({
         user_id: existChild.id,
-        refresh_token: refreshToken, // Lưu token raw, không hash
+        refresh_token: refreshChildToken,
         expires_at: new Date(Date.now() + REFRESH_TOKEN_TTL)
     });
 
@@ -148,34 +148,34 @@ export const signInChild = async (username, password) => {
     return {
         user: formatChildAuthResponse(existChild),
         accessToken,
-        refreshToken,
+        refreshChildToken,
         REFRESH_TOKEN_TTL
     };
 }
 
 
-export const signOutChild = async (refreshToken) => {
-    if (!refreshToken) {
+export const signOutChild = async (refreshChildToken) => {
+    if (!refreshChildToken) {
         return;
     }
     // Xóa session khớp với token raw
     await db.Session.destroy({
         where: {
-            refresh_token: refreshToken
+            refresh_token: refreshChildToken
         }
     });
     return;
 }
 
-export const refreshChildToken = async (refreshToken) => {
-    if (!refreshToken) {
+export const refreshToken = async (refreshChildToken) => {
+    if (!refreshChildToken) {
         throw new ApiError("Token không tồn tại", 401);
     }
 
     // 1. Tìm session khớp VÀ còn hạn
     const session = await db.Session.findOne({
         where: {
-            refresh_token: refreshToken,
+            refresh_token: refreshChildToken,
             expires_at: {
                 [Op.gt]: new Date()
             }
@@ -183,14 +183,14 @@ export const refreshChildToken = async (refreshToken) => {
     });
 
     if (!session) {
-        throw new ApiError("Refresh Token không hợp lệ hoặc đã hết hạn", 403);
+        throw new ApiError("Refresh Token không hợp lệ hoặc đã hết hạn", 401);
     }
 
     // 2. Lấy thông tin user
     const user = await db.User.findByPk(session.user_id);
     if (!user) {
         await session.destroy();
-        throw new ApiError("Không tìm thấy người dùng", 403);
+        throw new ApiError("Không tìm thấy người dùng", 401);
     }
 
     // 3. Tạo access token mới

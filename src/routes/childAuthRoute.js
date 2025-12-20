@@ -1,5 +1,5 @@
 import express from "express";
-import { validateInvite, activateChildAccount, childSignIn, childSignOut, refreshToken } from "../controllers/childAuthController.js";
+import { validateInvite, activateChildAccount, childSignIn, childSignOut, refreshChildToken } from "../controllers/childAuthController.js";
 import { requireAuth } from "../middlewares/requireAuth.js";
 import { requireChild } from "../middlewares/requireChild.js"
 
@@ -9,6 +9,6 @@ router.get('/invite', validateInvite)
 router.post('/activate', activateChildAccount)
 router.post('/signin', childSignIn)
 router.post('/signout', requireAuth, requireChild, childSignOut)
-router.post('/refresh', refreshToken)
+router.post('/refresh', refreshChildToken)
 
 export default router;

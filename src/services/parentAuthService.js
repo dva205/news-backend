@@ -10,7 +10,7 @@ export const signUpParent = async (email, password, firstName, lastName) => {
     const existUser = await db.User.findOne({ where: { email } })
 
     if (existUser) {
-        throw new ApiError("Email đã tồn tại", 400);
+        throw new ApiError("Email đã tồn tại", 409);
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -52,33 +52,33 @@ export const signInParent = async (email, password) => {
     const accessToken = jwt.sign(payload, secretKey, { expiresIn: ACCESS_TOKEN_TTL });
 
     const REFRESH_TOKEN_TTL = 14 * 24 * 60 * 60 * 1000; // 14 ngày
-    const refreshToken = crypto.randomBytes(64).toString("hex");
+    const refreshParentToken = crypto.randomBytes(64).toString("hex");
 
     await db.Session.create({
         user_id: existUser.id,
-        refresh_token: refreshToken,
+        refresh_token: refreshParentToken,
         expires_at: new Date(Date.now() + REFRESH_TOKEN_TTL)
     });
 
     return {
         user: formatParentResponse(existUser),
         accessToken,
-        refreshToken,
+        refreshParentToken,
         REFRESH_TOKEN_TTL,
     };
 }
 
 
 
-export const signOutParent = async (refreshToken) => {
+export const signOutParent = async (refreshParentToken) => {
     // Nếu không có token, không cần làm gì
-    if (!refreshToken) {
+    if (!refreshParentToken) {
         return;
     }
 
     await db.Session.destroy({
         where: {
-            refresh_token: refreshToken
+            refresh_token: refreshParentToken
         }
     });
 
@@ -86,15 +86,15 @@ export const signOutParent = async (refreshToken) => {
 }
 
 
-export const refreshParentToken = async (refreshToken) => {
-    if (!refreshToken) {
+export const refreshToken = async (refreshParentToken) => {
+    if (!refreshParentToken) {
         throw new ApiError("Refresh Token không tồn tại", 401);
     }
 
     // 1. Tìm session khớp với token VÀ còn hạn
     const session = await db.Session.findOne({
         where: {
-            refresh_token: refreshToken,
+            refresh_token: refreshParentToken,
             expires_at: {
                 [Op.gt]: new Date() // expires_at < now
             }
@@ -102,7 +102,7 @@ export const refreshParentToken = async (refreshToken) => {
     });
 
     if (!session) {
-        throw new ApiError("Refresh Token không hợp lệ hoặc đã hết hạn", 403);
+        throw new ApiError("Refresh Token không hợp lệ hoặc đã hết hạn", 401);
     }
 
 
@@ -111,7 +111,7 @@ export const refreshParentToken = async (refreshToken) => {
     if (!user) {
         // Lỗi hiếm gặp: session tồn tại nhưng user bị xóa
         await session.destroy();
-        throw new ApiError("Không tìm thấy người dùng của token", 403);
+        throw new ApiError("Không tìm thấy người dùng của token", 401);
     }
 
     // 4. Tạo access token mới
@@ -149,7 +149,7 @@ export const updateParentProfile = async (parentId, firstName, lastName, email, 
         });
 
         if (existingUser) {
-            throw new ApiError("Email này đã được sử dụng bởi người khác", 409); // 409 Conflict
+            throw new ApiError("Email này đã được sử dụng bởi người khác", 409);
         }
     }
 

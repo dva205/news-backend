@@ -1,4 +1,4 @@
-import { signUpParent, signInParent, signOutParent, refreshParentToken, updateParentProfile } from '../services/parentAuthService.js';
+import { signUpParent, signInParent, signOutParent, updateParentProfile, refreshToken } from '../services/parentAuthService.js';
 import { sendSuccess, sendError } from '../utils/ApiResponse.js';
 
 export const parentSignUp = async (req, res) => {
@@ -41,7 +41,7 @@ export const parentSignIn = async (req, res) => {
         const data = await signInParent(email, password);
 
         // 3. Đặt Cookie 
-        res.cookie('refreshToken', data.refreshToken, {
+        res.cookie('refreshParentToken', data.refreshParentToken, {
             httpOnly: true,
             secure: false,
             sameSite: "lax",
@@ -61,20 +61,15 @@ export const parentSignIn = async (req, res) => {
 export const parentSignOut = async (req, res) => {
     try {
         // 1. Lấy token từ cookie
-        const refreshToken = req.cookies?.refreshToken;
-
-        if (!refreshToken) {
-            return sendError(res, {
-                statusCode: 401,
-                message: "Thiếu refresh token"
-            });
-        }
+        const refreshParentToken = req.cookies?.refreshParentToken;
 
         // 2. Gọi Service 
-        await signOutParent(refreshToken);
+        if (refreshParentToken) {
+            await signOutParent(refreshParentToken);
+        }
 
         // 3. Xóa Cookie 
-        res.clearCookie("refreshToken", {
+        res.clearCookie("refreshParentToken", {
             httpOnly: true,
             // secure: true,
             sameSite: "lax"
@@ -84,26 +79,26 @@ export const parentSignOut = async (req, res) => {
         return sendSuccess(res, null, "Đăng xuất thành công", 200);
 
     } catch (error) {
-        console.error("Lỗi khi parent sign out", error);
+        console.error("Lỗi khi gọi parent sign out", error);
         return sendError(res, error);
     }
 }
 
 
-export const refreshToken = async (req, res) => {
+export const refreshParentToken = async (req, res) => {
     try {
         // 1. Lấy token từ cookie
-        const token = req.cookies?.refreshToken;
+        const refreshParentToken = req.cookies?.refreshParentToken;
 
-        if (!token) {
+        if (!refreshParentToken) {
             return sendError(res, {
                 statusCode: 401,
-                message: "Refresh Token không tồn tại"
+                message: "Thiếu refresh token"
             });
         }
 
         // 2. Gọi Service
-        const data = await refreshParentToken(token);
+        const data = await refreshToken(refreshParentToken);
 
         // 3. Trả Response
         return sendSuccess(res, { accessToken: data.accessToken }, null, 200);

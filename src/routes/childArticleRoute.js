@@ -3,14 +3,14 @@ import { getArticles, getAllCategories, getArticleById, getMyStrictRules, postCo
 
 const router = express.Router();
 
-router.get('/articles', getArticles);
-router.get('/articles/categories', getAllCategories);
+router.get('/', getArticles);
+router.get('/categories', getAllCategories);
 router.get('/strict-rules', getMyStrictRules);
-router.get('/articles/saved', getSavedArticle)
-router.get('/articles/:id', getArticleById);
+router.get('/saved', getSavedArticle)
+router.get('/:id', getArticleById);
 
-router.post('/articles/:id/comments', /*checkBadWord,*/ postComment)
-router.post('/articles/:id', toggleSaveArticle);
+router.post('/:id/comments', /*checkBadWord,*/ postComment)
+router.post('/:id', toggleSaveArticle);
 
 
 

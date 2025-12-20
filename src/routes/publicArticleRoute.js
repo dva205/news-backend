@@ -3,10 +3,9 @@ import { getArticles, getAllCategories, getArticleById, getAllComments } from '.
 
 const router = express.Router();
 
-router.get('/articles', getArticles);
-router.get('/articles/categories', getAllCategories);
-router.get('/articles/:id', getArticleById);
-
-router.get('/articles/:id/comments', getAllComments);
+router.get('/', getArticles);
+router.get('/categories', getAllCategories);
+router.get('/:id', getArticleById);
+router.get('/:id/comments', getAllComments);
 
 export default router;

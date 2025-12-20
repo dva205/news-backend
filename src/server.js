@@ -17,6 +17,7 @@ import { requireParent } from './middlewares/requireParent.js';
 import { cronArticle } from './cron/cronArticle.js';
 import { requireChild } from './middlewares/requireChild.js';
 import { checkTime } from './middlewares/checkTime.js'
+import publicAuthRoute from './routes/publicAuthRoute.js'
 import fs from 'fs';
 import swaggerUi from 'swagger-ui-express';
 
@@ -55,13 +56,14 @@ app.use('/parent/child', requireAuth, requireParent, parentChildManagementRoute)
 
 // child routes
 app.use('/child/auth', childAuthRoute)
-app.use('/child', requireAuth, requireChild, checkTime, childArticleRoute);
+app.use('/child/articles', requireAuth, requireChild, checkTime, childArticleRoute);
 app.use('/child/activity', requireAuth, requireChild, checkTime, childActivityRoute)
 
-app.use('/account', getAccount)
+app.use('/account', requireAuth, getAccount)
 
 // public route
-app.use('/public', publicArticleRoute)
+app.use('/public/articles', publicArticleRoute)
+app.use('/public/auth', publicAuthRoute)
 
 connectDB().then(() => {
   try {
