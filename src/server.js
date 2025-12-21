@@ -48,7 +48,7 @@ app.use('/image', express.static(path.join(__dirname, '../image')));
 
 
 // run cron-job
-// cronArticle();
+cronArticle();
 
 // parent routes
 app.use('/parent/auth', parentAuthRoute)
