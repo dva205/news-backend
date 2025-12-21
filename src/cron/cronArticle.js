@@ -18,7 +18,7 @@ async function processArticle() {
     }
 
     files = files.filter(file => {
-        return !file.name.startsWith('.');
+        return file.name.includes('latest');
     });
 
     console.log(`Tìm thấy ${files.length} files trong bucket`);
@@ -53,7 +53,7 @@ async function processArticle() {
 export const cronArticle = () => {
     console.log('Starting to cron article')
 
-    cron.schedule('* * * * *', () => {
+    cron.schedule('0 */12 * * *', () => {
         processArticle();
     });
 }

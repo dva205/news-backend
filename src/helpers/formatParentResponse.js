@@ -5,6 +5,7 @@ export const formatParentResponse = (user) => {
         firstName: user.first_name,
         lastName: user.last_name,
         displayName: user.display_name,
+        dob: user.dob || null,
         role: user.role,
         avatarUrl: user.avatar_url || null,
         createdAt: user.created_at

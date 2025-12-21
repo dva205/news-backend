@@ -44,14 +44,13 @@ module.exports = {
             },
 
             age_bucket: {
-                type: Sequelize.ENUM('6-10', '11-15', '16-18', 'ALL'),
+                type: Sequelize.ENUM('6-11', '11-16'),
                 allowNull: false,
-                defaultValue: 'ALL'
             },
 
             published_at: {
                 type: Sequelize.DATE,
-                allowNull: false,
+                allowNull: true,
             },
 
             created_at: {

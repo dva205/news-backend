@@ -2,6 +2,7 @@ import { Op } from 'sequelize';
 import db from "../models/index.js";
 import { ApiError } from '../utils/ApiError.js';
 import { formatArticleResponse, formatCommentResponse } from '../helpers/formatArticle.js';
+import { calculateChildAge } from '../helpers/calculateChildAge.js';
 
 
 export const getStrictRules = async (childId) => {
@@ -37,7 +38,21 @@ export const fetchAllCategories = async (childId) => {
 
 export const fetchNews = async (childId, page, limit, search, categoryName) => {
     const offset = (page - 1) * limit;
-    const strictRules = await getStrictRules(childId);
+
+    const [strictRules, child, allBuckets] = await Promise.all([
+        getStrictRules(childId),
+        db.User.findByPk(childId, { attributes: ['dob'] }),
+        db.Article.findAll({
+            attributes: [
+                [db.sequelize.fn('DISTINCT', db.sequelize.col('age_bucket')), 'age_bucket']
+            ],
+            raw: true
+        }
+
+        )
+    ]);
+
+    const childAge = calculateChildAge(child.dob);
 
     const andCriteria = [];
     const whereConditions = {};
@@ -101,9 +116,45 @@ export const fetchNews = async (childId, page, limit, search, categoryName) => {
         }
     }
 
+
+    // apply age
+    if (childAge > 0 && allBuckets.length > 0) {
+        // 1. Lọc ra danh sách các bucket string phù hợp với tuổi
+        const validBuckets = allBuckets
+            .map(item => item.age_bucket) // Biến đổi [{age_bucket: '6-11'}] -> ['6-11']
+            .filter(bucket => {
+                // Nếu bucket null hoặc rỗng -> Bài viết không giới hạn tuổi -> Lấy
+                if (!bucket) return true;
+
+                // Xử lý dạng "6-11"
+                if (bucket.includes('-')) {
+                    const [min, max] = bucket.split('-').map(Number); // Tách chuỗi và chuyển thành số
+                    return childAge >= min && childAge <= max;
+                }
+
+                return false;
+            });
+
+        // 2. Đưa điều kiện vào query
+        if (validBuckets.length > 0) {
+            // Nếu tìm thấy bucket phù hợp, chỉ lấy bài viết thuộc bucket đó
+            andCriteria.push({
+                age_bucket: { [Op.in]: validBuckets }
+            });
+        } else {
+            // Trường hợp đặc biệt: Tuổi của trẻ không khớp bucket nào cả (VD: 5 tuổi, nhưng chỉ có 6-11)
+            // Ta cần chặn không cho ra kết quả nào.
+            // Cách đơn giản nhất là thêm một điều kiện vô lý (VD: id = null)
+            andCriteria.push({
+                id: null
+            });
+        }
+    }
+
     if (andCriteria.length > 0) {
         whereConditions[Op.and] = andCriteria;
     }
+
 
     // Query
     const { count, rows } = await db.Article.findAndCountAll({
