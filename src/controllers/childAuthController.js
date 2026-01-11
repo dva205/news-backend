@@ -1,5 +1,8 @@
-import { validateInviteCode, signInChild, signOutChild, activeChildAccount, refreshToken } from '../services/childAuthService.js';
+import { validateInviteCode, signInChild, signOutChild, activeChildAccount, refreshToken, updateChildProfile } from '../services/childAuthService.js';
 import { sendSuccess, sendError } from '../utils/ApiResponse.js';
+import { formatStrictRuleResponse } from '../helpers/formatStrictRuleResponse.js';
+import { getStrictRules } from '../services/childArticleService.js';
+import { handleUploadImage } from '../utils/handleUpload.js'
 
 export const validateInvite = async (req, res) => {
     try {
@@ -131,3 +134,69 @@ export const refreshChildToken = async (req, res) => {
         return sendError(res, error);
     }
 }
+
+// lấy strict rule
+export const getMyStrictRules = async (req, res) => {
+    try {
+        const childId = req.user.id;
+        if (!childId) {
+            return sendError(res, {
+                statusCode: 401,
+                message: "Nguời dùng không có quyền thực hiện hành động này"
+            });
+        }
+
+        const rules = await getStrictRules(childId);
+
+        return sendSuccess(res, formatStrictRuleResponse(rules), "Lấy strict rules thành công", 200);
+    } catch (error) {
+        console.error("Lỗi khi lấy strict rules:", error);
+        return sendError(res, error);
+    }
+};
+
+export const updateProfile = async (req, res) => {
+    try {
+        const childId = req.user.id;
+
+        // Validate: Check nếu có lỗi từ fileFilter
+        if (req.fileValidationError) {
+            return sendError(res, {
+                statusCode: 400,
+                message: req.fileValidationError
+            });
+        }
+
+        if (!childId) {
+            return sendError(res, {
+                statusCode: 401,
+                message: "Người dùng không có quyền thực hiện hành động này"
+            });
+        }
+
+        let avatarUrl = null;
+        if (req.file) {
+            try {
+                const b64 = Buffer.from(req.file.buffer).toString("base64")
+                let dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+
+                const cldRes = await handleUploadImage(dataURI);
+
+                avatarUrl = cldRes.secure_url;
+            } catch (error) {
+                console.error("Lỗi khi upload ảnh lên cdn", error);
+                return sendError(res, {
+                    statusCode: 500,
+                    message: "Lỗi hệ thống"
+                });
+            }
+        }
+
+        const data = await updateChildProfile(childId, avatarUrl);
+
+        return sendSuccess(res, data, "Cập nhật thông tin thành công", 200);
+    } catch (error) {
+        console.error("Lỗi gọi update child profile:", error);
+        return sendError(res, error);
+    }
+};

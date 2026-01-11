@@ -43,6 +43,11 @@ module.exports = (sequelize, DataTypes) => {
         as: 'savedArticles',
         foreignKey: 'child_id',
       });
+
+      User.hasOne(models.Strict, {
+        as: 'streaks',
+        foreignKey: 'child_id',
+      });
     }
   }
 

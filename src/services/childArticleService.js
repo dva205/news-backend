@@ -52,7 +52,9 @@ export const fetchNews = async (childId, page, limit, search, categoryName) => {
         )
     ]);
 
+
     const childAge = calculateChildAge(child.dob);
+
 
     const andCriteria = [];
     const whereConditions = {};
@@ -119,7 +121,6 @@ export const fetchNews = async (childId, page, limit, search, categoryName) => {
 
     // apply age
     if (childAge > 0 && allBuckets.length > 0) {
-        // 1. Lọc ra danh sách các bucket string phù hợp với tuổi
         const validBuckets = allBuckets
             .map(item => item.age_bucket) // Biến đổi [{age_bucket: '6-11'}] -> ['6-11']
             .filter(bucket => {
@@ -129,9 +130,9 @@ export const fetchNews = async (childId, page, limit, search, categoryName) => {
                 // Xử lý dạng "6-11"
                 if (bucket.includes('-')) {
                     const [min, max] = bucket.split('-').map(Number); // Tách chuỗi và chuyển thành số
-                    return childAge >= min && childAge <= max;
-                }
 
+                    return childAge >= min;
+                }
                 return false;
             });
 

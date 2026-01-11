@@ -205,3 +205,26 @@ export const refreshToken = async (refreshChildToken) => {
     // 4. Trả về token mới
     return { accessToken };
 }
+
+export const updateChildProfile = async (childId, avatarUrl) => {
+    const child = await db.User.findOne({
+        where: {
+            id: childId,
+            role: 'CHILD'
+        }
+    })
+
+    if (!child) {
+        throw new ApiError("Không tìm thấy tài khoản con", 404);
+    }
+
+    let updateData = {};
+
+    if (avatarUrl) {
+        updateData.avatar_url = avatarUrl;
+    }
+
+    await child.update(updateData);
+
+    return formatChildAuthResponse(child)
+}

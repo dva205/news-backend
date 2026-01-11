@@ -1,4 +1,4 @@
-export const formatParentResponse = (user) => {
+export const formatParentAuthResponse = (user) => {
     return {
         id: user.id,
         email: user.email,

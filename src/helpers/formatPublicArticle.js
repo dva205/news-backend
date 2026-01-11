@@ -10,6 +10,7 @@ export const formatPublicArticle = (article) => {
         categoryName: article.category?.name,
         categoryId: article.category?.id,
         publishedAt: formatDate(article.published_at) || null,
-        sourceUrl: article.source_url || null
+        sourceUrl: article.source_url || null,
+        audioUrl: article.audio_url || null
     };
 };

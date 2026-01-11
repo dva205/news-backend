@@ -6,6 +6,8 @@ export const formatChildAuthResponse = (user) => {
         lastName: user.last_name,
         displayName: user.display_name,
         role: user.role,
+        dob: user.dob,
+        gender: user.gender,
         parentId: user.parent_id,
         avatarUrl: user.avatar_url || null,
     };

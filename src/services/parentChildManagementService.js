@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { ApiError } from '../utils/ApiError.js';
 import { Op } from 'sequelize'
 import { formatChildResponse } from '../helpers/formatChildResponse.js';
-import { fillMissingDates, getDateRange } from '../helpers/chartDraw.js';
+import { fillMissingDates, getDateRange } from '../utils/chartDraw.js';
 
 
 export const createChildAccount = async (parentId, childData) => {

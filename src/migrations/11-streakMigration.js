@@ -3,7 +3,7 @@
 
 module.exports = {
     async up(queryInterface, Sequelize) {
-        await queryInterface.createTable('stricts', {
+        await queryInterface.createTable('streaks', {
             child_id: {
                 type: Sequelize.BIGINT.UNSIGNED,
                 unique: true,
@@ -17,29 +17,20 @@ module.exports = {
                 onUpdate: 'CASCADE',
             },
 
-            time_limit_minutes: {
+            streak_count: {
                 type: Sequelize.INTEGER,
+                allowNull: false,
+                defaultValue: 0
+            },
+            max_streak: {
+                type: Sequelize.INTEGER,
+                allowNull: false,
+                defaultValue: 0
+            },
+            last_activity_date: {
+                type: Sequelize.DATEONLY,
                 allowNull: true,
             },
-
-            blocked_keyword: {
-                type: Sequelize.JSON,
-                allowNull: true,
-                defaultValue: []
-            },
-
-            blocked_category: {
-                type: Sequelize.JSON,
-                allowNull: true,
-                defaultValue: []
-            },
-
-            blocked_feature: {
-                type: Sequelize.JSON,
-                allowNull: true,
-                defaultValue: []
-            },
-
             created_at: {
                 type: Sequelize.DATE,
                 allowNull: false,
@@ -55,6 +46,6 @@ module.exports = {
     },
 
     async down(queryInterface, Sequelize) {
-        await queryInterface.dropTable('stricts');
+        await queryInterface.dropTable('streaks');
     },
 };

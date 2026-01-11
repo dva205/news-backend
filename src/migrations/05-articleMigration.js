@@ -48,6 +48,11 @@ module.exports = {
                 allowNull: false,
             },
 
+            audio_url: {
+                type: Sequelize.TEXT,
+                allowNull: true,
+            },
+            
             published_at: {
                 type: Sequelize.DATE,
                 allowNull: true,

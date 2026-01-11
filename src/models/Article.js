@@ -64,6 +64,11 @@ module.exports = (sequelize, DataTypes) => {
                 type: DataTypes.DATE,
                 allowNull: true,
             },
+
+            audio_url: {
+                type: DataTypes.TEXT,
+                allowNull: true,
+            }
         },
         {
             sequelize,

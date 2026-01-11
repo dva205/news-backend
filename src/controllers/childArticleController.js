@@ -1,5 +1,7 @@
-import { fetchAllCategories, fetchNews, fetchArticleById, getStrictRules, createComment, changeStatusSave, fetchSavedArticle } from '../services/childArticleService.js';
+import { fetchAllCategories, fetchNews, fetchArticleById, createComment, changeStatusSave, fetchSavedArticle } from '../services/childArticleService.js';
 import { sendError, sendSuccess } from '../utils/ApiResponse.js';
+import { checkBadWord } from '../utils/checkBadWord.js';
+
 
 // lấy báo
 export const getArticles = async (req, res) => {
@@ -73,28 +75,6 @@ export const getArticleById = async (req, res) => {
     }
 };
 
-// lấy strict rule
-export const getMyStrictRules = async (req, res) => {
-    try {
-        const childId = req.user.id;
-        if (!childId) {
-            return sendError(res, {
-                statusCode: 401,
-                message: "Nguời dùng không có quyền thực hiện hành động này"
-            });
-        }
-
-
-        const rules = await getStrictRules(childId);
-
-        const data = rules || { hasRules: false };
-
-        return sendSuccess(res, data, "Lấy strict rules thành công", 200);
-    } catch (error) {
-        console.error("Lỗi khi lấy strict rules:", error);
-        return sendError(res, error);
-    }
-};
 
 // đăng comment
 export const postComment = async (req, res) => {
@@ -117,9 +97,16 @@ export const postComment = async (req, res) => {
             });
         }
 
-        const newComment = await createComment(childId, articleId, content);
 
-        return sendSuccess(res, newComment, "Đăng bình luận thành công", 201);
+        const allowed = await checkBadWord(content);
+
+        if (allowed) {
+            const newComment = await createComment(childId, articleId, content);
+
+            return sendSuccess(res, newComment, "Đăng bình luận thành công", 201);
+        } else {
+            return sendSuccess(res, null, "Vui lòng không nhập từ ngữ nhạy cảm", 403);
+        }
     } catch (error) {
         console.error("Lỗi khi tạo comment:", error);
         return sendError(res, error);

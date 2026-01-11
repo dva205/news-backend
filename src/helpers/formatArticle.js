@@ -14,6 +14,7 @@ export const formatArticleResponse = (article, isSaved = false) => {
         categoryId: data.category?.id,
         publishedAt: formatDate(data.published_at) || null,
         sourceUrl: data.source_url || null,
+        audioUrl: data.audio_url || null,
         isSaved: isSaved || false // Flag quan trọng cho FE
     };
 };

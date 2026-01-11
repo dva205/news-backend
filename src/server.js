@@ -10,8 +10,8 @@ import parentChildManagementRoute from './routes/parentChildManagementRoute.js';
 import childAuthRoute from './routes/childAuthRoute.js';
 import childArticleRoute from './routes/childArticleRoute.js';
 import publicArticleRoute from './routes/publicArticleRoute.js';
-import getAccount from './routes/getAccount.js';
 import childActivityRoute from './routes/childActivityRoute.js'
+import textToSpeechRoute from './routes/textToSpeechRoute.js'
 import { requireAuth } from './middlewares/requireAuth.js';
 import { requireParent } from './middlewares/requireParent.js';
 import { cronArticle } from './cron/cronArticle.js';
@@ -58,12 +58,12 @@ app.use('/parent/child', requireAuth, requireParent, parentChildManagementRoute)
 app.use('/child/auth', childAuthRoute)
 app.use('/child/articles', requireAuth, requireChild, checkTime, childArticleRoute);
 app.use('/child/activity', requireAuth, requireChild, checkTime, childActivityRoute)
-
-app.use('/account', requireAuth, getAccount)
+app.use('/child/tts', requireAuth, requireChild, checkTime, textToSpeechRoute)
 
 // public route
 app.use('/public/articles', publicArticleRoute)
 app.use('/public/auth', publicAuthRoute)
+
 
 connectDB().then(() => {
   try {

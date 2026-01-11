@@ -56,4 +56,8 @@ export const cronArticle = () => {
     cron.schedule('0 */12 * * *', () => {
         processArticle();
     });
+
+    // cron.schedule('* * * * *', () => {
+    //     processArticle();
+    // });
 }

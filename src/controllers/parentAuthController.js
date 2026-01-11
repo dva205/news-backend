@@ -1,5 +1,6 @@
 import { signUpParent, signInParent, signOutParent, updateParentProfile, refreshToken } from '../services/parentAuthService.js';
 import { sendSuccess, sendError } from '../utils/ApiResponse.js';
+import { handleUploadImage } from '../utils/handleUpload.js'
 
 export const parentSignUp = async (req, res) => {
     try {
@@ -141,8 +142,20 @@ export const updateProfile = async (req, res) => {
         // Xử lý avatar URL nếu có file upload
         let avatarUrl = null;
         if (req.file) {
-            // URL: http://localhost:5000/image/avatar-5-1234567890.jpg
-            avatarUrl = `http://localhost:5000/image/${req.file.filename}`;
+            try {
+                const b64 = Buffer.from(req.file.buffer).toString("base64")
+                let dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+
+                const cldRes = await handleUploadImage(dataURI);
+
+                avatarUrl = cldRes.secure_url;
+            } catch (error) {
+                console.error("Lỗi khi upload ảnh lên cdn", error);
+                return sendError(res, {
+                    statusCode: 500,
+                    message: "Lỗi hệ thống"
+                });
+            }
         }
 
         // Gọi service để update

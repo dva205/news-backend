@@ -4,7 +4,7 @@ import db from '../models/index.js';
 import crypto from "crypto";
 import { Op } from "sequelize";
 import { ApiError } from '../utils/ApiError.js';
-import { formatParentResponse } from '../helpers/formatParentResponse.js'
+import { formatParentAuthResponse } from '../helpers/formatParentAuthResponse.js'
 
 export const signUpParent = async (email, password, firstName, lastName) => {
     const existUser = await db.User.findOne({ where: { email } })
@@ -24,7 +24,7 @@ export const signUpParent = async (email, password, firstName, lastName) => {
         role: "PARENT"
     });
 
-    return formatParentResponse(newUser);
+    return formatParentAuthResponse(newUser);
 }
 
 
@@ -61,7 +61,7 @@ export const signInParent = async (email, password) => {
     });
 
     return {
-        user: formatParentResponse(existUser),
+        user: formatParentAuthResponse(existUser),
         accessToken,
         refreshParentToken,
         REFRESH_TOKEN_TTL,
@@ -170,5 +170,5 @@ export const updateParentProfile = async (parentId, firstName, lastName, email, 
     await parent.update(updateData);
 
     // 3. Trả về thông tin đã cập nhật
-    return formatParentResponse(parent);
+    return formatParentAuthResponse(parent);
 }
