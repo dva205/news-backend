@@ -1,32 +1,32 @@
-import { formatDate } from './formatDate.js'
+import { formatDate } from './formatDate.js';
 
 export const formatArticleResponse = (article, isSaved = false) => {
-    // Nếu article lấy từ bảng SavedArticle (bị lồng bên trong)
-    const data = article.article ? article.article : article;
+  // Nếu article lấy từ bảng SavedArticle (bị lồng bên trong)
+  const data = article.article ? article.article : article;
 
-    return {
-        id: data.id,
-        title: data.title,
-        content: data.content,
-        imageUrl: data.image_url,
-        ageBucket: data.age_bucket || null,
-        categoryName: data.category?.name,
-        categoryId: data.category?.id,
-        publishedAt: formatDate(data.published_at) || null,
-        sourceUrl: data.source_url || null,
-        audioUrl: data.audio_url || null,
-        isSaved: isSaved || false // Flag quan trọng cho FE
-    };
+  return {
+    id: data.id,
+    title: data.title,
+    content: data.content,
+    imageUrl: data.image_url,
+    ageBucket: data.age_bucket || null,
+    categoryName: data.category?.name,
+    categoryId: data.category_id,
+    publishedAt: formatDate(data.published_at) || null,
+    sourceUrl: data.source_url || null,
+    audioUrl: data.audio_url || null,
+    isSaved: isSaved || false, // Flag quan trọng cho FE
+  };
 };
 
 export const formatCommentResponse = (comment) => {
-    return {
-        id: comment.id,
-        content: comment.content,
-        createdAt: comment.createdAt,
-        user: {
-            username: comment.user?.username || "Ẩn danh",
-            avatarUrl: comment.user?.avatar_url || null
-        }
-    };
+  return {
+    id: comment.id,
+    content: comment.content,
+    createdAt: comment.createdAt,
+    user: {
+      username: comment.user?.username || 'Ẩn danh',
+      avatarUrl: comment.user?.avatar_url || null,
+    },
+  };
 };

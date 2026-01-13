@@ -1,1021 +1,939 @@
 {
-    "openapi": "3.0.0",
-    "info": {
-        "title": "News Backend API",
-        "version": "1.0.0",
-        "description": "API Documentation for News App (Parent & Child modules)"
-    },
-    "servers": [
-        {
-            "url": "http://localhost:5000",
-            "description": "Local Server"
-        }
-    ],
-    "components": {
-        "securitySchemes": {
-            "BearerAuth": {
-                "type": "http",
-                "scheme": "bearer",
-                "bearerFormat": "JWT"
-            }
-        },
-        "schemas": {
-            "ApiResponse": {
-                "type": "object",
-                "properties": {
-                    "success": {
-                        "type": "boolean",
-                        "example": true
-                    },
-                    "message": {
-                        "type": "string",
-                        "example": "Đăng kí thành công"
-                    },
-                    "statusCode": {
-                        "type": "integer",
-                        "example": 200
-                    },
-                    "data": {
-                        "type": "object",
-                        "nullable": true
-                    }
-                }
-            },
-            "Pagination": {
-                "type": "object",
-                "properties": {
-                    "totalItems": {
-                        "type": "integer"
-                    },
-                    "totalPages": {
-                        "type": "integer"
-                    },
-                    "currentPage": {
-                        "type": "integer"
-                    },
-                    "limit": {
-                        "type": "integer"
-                    }
-                }
-            }
-        }
-    },
-    "tags": [
-        {
-            "name": "Parent Auth",
-            "description": "Authentication for Parents"
-        },
-        {
-            "name": "Parent Child Management",
-            "description": "Parent manages Children accounts"
-        },
-        {
-            "name": "Child Auth",
-            "description": "Authentication for Children"
-        },
-        {
-            "name": "Child Article",
-            "description": "News reading & interaction for Children"
-        },
-        {
-            "name": "Child Activity",
-            "description": "Time logging"
-        },
-        {
-            "name": "Public Article",
-            "description": "Public news access"
-        },
-        {
-            "name": "Account",
-            "description": "General account info"
-        }
-    ],
-    "paths": {
-        "/parent/auth/signup": {
-            "post": {
-                "tags": [
-                    "Parent Auth"
-                ],
-                "summary": "Parent Register",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "required": [
-                                    "email",
-                                    "password",
-                                    "firstName",
-                                    "lastName"
-                                ],
-                                "properties": {
-                                    "email": {
-                                        "type": "string",
-                                        "format": "email"
-                                    },
-                                    "password": {
-                                        "type": "string",
-                                        "format": "password"
-                                    },
-                                    "firstName": {
-                                        "type": "string"
-                                    },
-                                    "lastName": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Success",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ApiResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/parent/auth/signin": {
-            "post": {
-                "tags": [
-                    "Parent Auth"
-                ],
-                "summary": "Parent Login",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "required": [
-                                    "email",
-                                    "password"
-                                ],
-                                "properties": {
-                                    "email": {
-                                        "type": "string",
-                                        "format": "email",
-                                        "example": "parent@gmail.com"
-                                    },
-                                    "password": {
-                                        "type": "string",
-                                        "format": "password",
-                                        "example": "123456"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Login Success",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "allOf": [
-                                        {
-                                            "$ref": "#/components/schemas/ApiResponse"
-                                        },
-                                        {
-                                            "type": "object",
-                                            "properties": {
-                                                "data": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "user": {
-                                                            "type": "object"
-                                                        },
-                                                        "accessToken": {
-                                                            "type": "string"
-                                                        },
-                                                        "refreshToken": {
-                                                            "type": "string"
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    ]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/parent/auth/signout": {
-            "post": {
-                "tags": [
-                    "Parent Auth"
-                ],
-                "summary": "Signout",
-                "responses": {
-                    "200": {
-                        "description": "Success"
-                    }
-                }
-            }
-        },
-        "/parent/auth/refresh": {
-            "post": {
-                "tags": [
-                    "Parent Auth"
-                ],
-                "summary": "Refresh Token",
-                "responses": {
-                    "200": {
-                        "description": "New Access Token"
-                    }
-                }
-            }
-        },
-        "/parent/auth/update": {
-            "patch": {
-                "tags": [
-                    "Parent Auth"
-                ],
-                "summary": "Update Parent Profile",
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "firstName": {
-                                        "type": "string"
-                                    },
-                                    "lastName": {
-                                        "type": "string"
-                                    },
-                                    "email": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Updated"
-                    }
-                }
-            }
-        },
-        "/parent/child/create": {
-            "post": {
-                "tags": [
-                    "Parent Child Management"
-                ],
-                "summary": "Create Child Account",
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "required": [
-                                    "username",
-                                    "firstName",
-                                    "lastName",
-                                    "dob",
-                                    "gender"
-                                ],
-                                "properties": {
-                                    "username": {
-                                        "type": "string"
-                                    },
-                                    "firstName": {
-                                        "type": "string"
-                                    },
-                                    "lastName": {
-                                        "type": "string"
-                                    },
-                                    "dob": {
-                                        "type": "string",
-                                        "format": "date"
-                                    },
-                                    "gender": {
-                                        "type": "string",
-                                        "enum": [
-                                            "MALE",
-                                            "FEMALE",
-                                            "OTHER"
-                                        ]
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Created with Invite Code"
-                    }
-                }
-            }
-        },
-        "/parent/child/all": {
-            "get": {
-                "tags": [
-                    "Parent Child Management"
-                ],
-                "summary": "Get all children",
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of children"
-                    }
-                }
-            }
-        },
-        "/parent/child/update/{id}": {
-            "patch": {
-                "tags": [
-                    "Parent Child Management"
-                ],
-                "summary": "Update Child Info",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "firstName": {
-                                        "type": "string"
-                                    },
-                                    "lastName": {
-                                        "type": "string"
-                                    },
-                                    "dob": {
-                                        "type": "string"
-                                    },
-                                    "gender": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Success"
-                    }
-                }
-            }
-        },
-        "/parent/child/set-strict/{id}": {
-            "post": {
-                "tags": [
-                    "Parent Child Management"
-                ],
-                "summary": "Set Strict Rules (Time limit, Keywords...)",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "timeLimit": {
-                                        "type": "integer",
-                                        "description": "Minutes"
-                                    },
-                                    "blockedKeyword": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "blockedCategory": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "blockedFeature": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "string"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Rules Updated"
-                    }
-                }
-            }
-        },
-        "/parent/child/view-log/{id}": {
-            "post": {
-                "tags": [
-                    "Parent Child Management"
-                ],
-                "summary": "View Activity Log (Chart Data)",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "timeRange": {
-                                        "type": "string",
-                                        "enum": [
-                                            "today",
-                                            "week",
-                                            "month"
-                                        ]
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Chart Data"
-                    }
-                }
-            }
-        },
-        "/child/auth/invite": {
-            "get": {
-                "tags": [
-                    "Child Auth"
-                ],
-                "summary": "Validate Invite Code",
-                "parameters": [
-                    {
-                        "name": "code",
-                        "in": "query",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Returns Parent & Child info"
-                    }
-                }
-            }
-        },
-        "/child/auth/activate": {
-            "post": {
-                "tags": [
-                    "Child Auth"
-                ],
-                "summary": "Activate Account",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "required": [
-                                    "code",
-                                    "password"
-                                ],
-                                "properties": {
-                                    "code": {
-                                        "type": "string"
-                                    },
-                                    "password": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Activated"
-                    }
-                }
-            }
-        },
-        "/child/auth/signin": {
-            "post": {
-                "tags": [
-                    "Child Auth"
-                ],
-                "summary": "Child Login",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "required": [
-                                    "username",
-                                    "password"
-                                ],
-                                "properties": {
-                                    "username": {
-                                        "type": "string"
-                                    },
-                                    "password": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Login Success"
-                    }
-                }
-            }
-        },
-        "/child/auth/signout": {
-            "post": {
-                "tags": [
-                    "Child Auth"
-                ],
-                "summary": "Signout",
-                "responses": {
-                    "200": {
-                        "description": "Success"
-                    }
-                }
-            }
-        },
-        "/child/auth/refresh": {
-            "post": {
-                "tags": [
-                    "Child Auth"
-                ],
-                "summary": "Refresh Token",
-                "responses": {
-                    "200": {
-                        "description": "Success"
-                    }
-                }
-            }
-        },
-        "/public/articles": {
-            "get": {
-                "tags": [
-                    "Public Article"
-                ],
-                "summary": "Get Public News List",
-                "parameters": [
-                    {
-                        "name": "page",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer",
-                            "default": 1
-                        }
-                    },
-                    {
-                        "name": "limit",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer",
-                            "default": 10
-                        }
-                    },
-                    {
-                        "name": "search",
-                        "in": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "category",
-                        "in": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Success"
-                    }
-                }
-            }
-        },
-        "/public/articles/categories": {
-            "get": {
-                "tags": [
-                    "Public Article"
-                ],
-                "summary": "Get Categories",
-                "responses": {
-                    "200": {
-                        "description": "List of categories"
-                    }
-                }
-            }
-        },
-        "/public/articles/{id}": {
-            "get": {
-                "tags": [
-                    "Public Article"
-                ],
-                "summary": "Get Public Article Detail",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Article Detail"
-                    }
-                }
-            }
-        },
-        "/child/articles": {
-            "get": {
-                "tags": [
-                    "Child Article"
-                ],
-                "summary": "Get Articles (With Strict Filter)",
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "parameters": [
-                    {
-                        "name": "page",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "limit",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "search",
-                        "in": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "category",
-                        "in": "query",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Filtered Articles"
-                    }
-                }
-            }
-        },
-        "/child/articles/categories": {
-            "get": {
-                "tags": [
-                    "Child Article"
-                ],
-                "summary": "Get Allowed Categories",
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Filtered Categories"
-                    }
-                }
-            }
-        },
-        "/child/strict-rules": {
-            "get": {
-                "tags": [
-                    "Child Article"
-                ],
-                "summary": "Get Current Rules",
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Rules Info"
-                    }
-                }
-            }
-        },
-        "/child/articles/{id}": {
-            "get": {
-                "tags": [
-                    "Child Article"
-                ],
-                "summary": "Get Article Detail (Check Blocked & Saved)",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Article with isSaved flag"
-                    }
-                }
-            },
-            "post": {
-                "tags": [
-                    "Child Article"
-                ],
-                "summary": "Toggle Save/Unsave Article",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Toggle success"
-                    }
-                }
-            }
-        },
-        "/child/articles/{id}/comments": {
-            "get": {
-                "tags": [
-                    "Child Article"
-                ],
-                "summary": "Get Comments",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "page",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "limit",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List comments"
-                    }
-                }
-            },
-            "post": {
-                "tags": [
-                    "Child Article"
-                ],
-                "summary": "Post Comment",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "required": [
-                                    "content"
-                                ],
-                                "properties": {
-                                    "content": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Comment Created (Returns comment object)"
-                    }
-                }
-            }
-        },
-        "/child/articles/saved": {
-            "get": {
-                "tags": [
-                    "Child Article"
-                ],
-                "summary": "Get Saved Articles",
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "parameters": [
-                    {
-                        "name": "page",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "limit",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List saved articles"
-                    }
-                }
-            }
-        },
-        "/child/activity/log": {
-            "post": {
-                "tags": [
-                    "Child Activity"
-                ],
-                "summary": "Log Active Time",
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "required": [
-                                    "activeSeconds"
-                                ],
-                                "properties": {
-                                    "activeSeconds": {
-                                        "type": "integer",
-                                        "description": "Seconds to add"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Log success"
-                    }
-                }
-            }
-        },
-        "/account/me": {
-            "get": {
-                "tags": [
-                    "Account"
-                ],
-                "summary": "Get Current User Info",
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "User Info"
-                    }
-                }
-            }
-        }
+  "openapi": "3.0.0",
+  "info": {
+    "title": "News Backend API",
+    "version": "1.0.0",
+    "description": "API Documentation for News App (Parent & Child modules)"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Local Server"
     }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ApiResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "example": "Đăng kí thành công"
+          },
+          "statusCode": {
+            "type": "integer",
+            "example": 200
+          },
+          "data": {
+            "type": "object",
+            "nullable": true
+          }
+        }
+      },
+      "Pagination": {
+        "type": "object",
+        "properties": {
+          "totalItems": {
+            "type": "integer"
+          },
+          "totalPages": {
+            "type": "integer"
+          },
+          "currentPage": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Parent Auth",
+      "description": "Authentication for Parents"
+    },
+    {
+      "name": "Parent Child Management",
+      "description": "Parent manages Children accounts"
+    },
+    {
+      "name": "Child Auth",
+      "description": "Authentication for Children"
+    },
+    {
+      "name": "Child Article",
+      "description": "News reading & interaction for Children"
+    },
+    {
+      "name": "Child Activity",
+      "description": "Time logging"
+    },
+    {
+      "name": "Public Article",
+      "description": "Public news access"
+    },
+    {
+      "name": "Account",
+      "description": "General account info"
+    }
+  ],
+  "paths": {
+    "/parent/auth/signup": {
+      "post": {
+        "tags": ["Parent Auth"],
+        "summary": "Parent Register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password", "firstName", "lastName"],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password"
+                  },
+                  "firstName": {
+                    "type": "string"
+                  },
+                  "lastName": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parent/auth/signin": {
+      "post": {
+        "tags": ["Parent Auth"],
+        "summary": "Parent Login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "parent@gmail.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "example": "123456"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ApiResponse"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "object",
+                          "properties": {
+                            "user": {
+                              "type": "object"
+                            },
+                            "accessToken": {
+                              "type": "string"
+                            },
+                            "refreshToken": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/parent/auth/signout": {
+      "post": {
+        "tags": ["Parent Auth"],
+        "summary": "Signout",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/parent/auth/refresh": {
+      "post": {
+        "tags": ["Parent Auth"],
+        "summary": "Refresh Token",
+        "responses": {
+          "200": {
+            "description": "New Access Token"
+          }
+        }
+      }
+    },
+    "/parent/auth/update": {
+      "patch": {
+        "tags": ["Parent Auth"],
+        "summary": "Update Parent Profile",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "firstName": {
+                    "type": "string"
+                  },
+                  "lastName": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          }
+        }
+      }
+    },
+    "/parent/child/create": {
+      "post": {
+        "tags": ["Parent Child Management"],
+        "summary": "Create Child Account",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "username",
+                  "firstName",
+                  "lastName",
+                  "dob",
+                  "gender"
+                ],
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  },
+                  "firstName": {
+                    "type": "string"
+                  },
+                  "lastName": {
+                    "type": "string"
+                  },
+                  "dob": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "gender": {
+                    "type": "string",
+                    "enum": ["MALE", "FEMALE", "OTHER"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created with Invite Code"
+          }
+        }
+      }
+    },
+    "/parent/child/all": {
+      "get": {
+        "tags": ["Parent Child Management"],
+        "summary": "Get all children",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of children"
+          }
+        }
+      }
+    },
+    "/parent/child/update/{id}": {
+      "patch": {
+        "tags": ["Parent Child Management"],
+        "summary": "Update Child Info",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "firstName": {
+                    "type": "string"
+                  },
+                  "lastName": {
+                    "type": "string"
+                  },
+                  "dob": {
+                    "type": "string"
+                  },
+                  "gender": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/parent/child/set-strict/{id}": {
+      "post": {
+        "tags": ["Parent Child Management"],
+        "summary": "Set Strict Rules (Time limit, Keywords...)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "timeLimit": {
+                    "type": "integer",
+                    "description": "Minutes"
+                  },
+                  "blockedKeyword": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "blockedCategory": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "blockedFeature": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rules Updated"
+          }
+        }
+      }
+    },
+    "/parent/child/view-log/{id}": {
+      "post": {
+        "tags": ["Parent Child Management"],
+        "summary": "View Activity Log (Chart Data)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "timeRange": {
+                    "type": "string",
+                    "enum": ["today", "week", "month"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Chart Data"
+          }
+        }
+      }
+    },
+    "/child/auth/invite": {
+      "get": {
+        "tags": ["Child Auth"],
+        "summary": "Validate Invite Code",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns Parent & Child info"
+          }
+        }
+      }
+    },
+    "/child/auth/activate": {
+      "post": {
+        "tags": ["Child Auth"],
+        "summary": "Activate Account",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["code", "password"],
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Activated"
+          }
+        }
+      }
+    },
+    "/child/auth/signin": {
+      "post": {
+        "tags": ["Child Auth"],
+        "summary": "Child Login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "password"],
+                "properties": {
+                  "username": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login Success"
+          }
+        }
+      }
+    },
+    "/child/auth/signout": {
+      "post": {
+        "tags": ["Child Auth"],
+        "summary": "Signout",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/child/auth/refresh": {
+      "post": {
+        "tags": ["Child Auth"],
+        "summary": "Refresh Token",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/public/articles": {
+      "get": {
+        "tags": ["Public Article"],
+        "summary": "Get Public News List",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/public/articles/categories": {
+      "get": {
+        "tags": ["Public Article"],
+        "summary": "Get Categories",
+        "responses": {
+          "200": {
+            "description": "List of categories"
+          }
+        }
+      }
+    },
+    "/public/articles/{id}": {
+      "get": {
+        "tags": ["Public Article"],
+        "summary": "Get Public Article Detail",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Article Detail"
+          }
+        }
+      }
+    },
+    "/child/articles": {
+      "get": {
+        "tags": ["Child Article"],
+        "summary": "Get Articles (With Strict Filter)",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Filtered Articles"
+          }
+        }
+      }
+    },
+    "/child/articles/categories": {
+      "get": {
+        "tags": ["Child Article"],
+        "summary": "Get Allowed Categories",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Filtered Categories"
+          }
+        }
+      }
+    },
+    "/child/strict-rules": {
+      "get": {
+        "tags": ["Child Article"],
+        "summary": "Get Current Rules",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rules Info"
+          }
+        }
+      }
+    },
+    "/child/articles/{id}": {
+      "get": {
+        "tags": ["Child Article"],
+        "summary": "Get Article Detail (Check Blocked & Saved)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Article with isSaved flag"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Child Article"],
+        "summary": "Toggle Save/Unsave Article",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Toggle success"
+          }
+        }
+      }
+    },
+    "/child/articles/{id}/comments": {
+      "get": {
+        "tags": ["Child Article"],
+        "summary": "Get Comments",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List comments"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Child Article"],
+        "summary": "Post Comment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["content"],
+                "properties": {
+                  "content": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Comment Created (Returns comment object)"
+          }
+        }
+      }
+    },
+    "/child/articles/saved": {
+      "get": {
+        "tags": ["Child Article"],
+        "summary": "Get Saved Articles",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List saved articles"
+          }
+        }
+      }
+    },
+    "/child/activity/log": {
+      "post": {
+        "tags": ["Child Activity"],
+        "summary": "Log Active Time",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["activeSeconds"],
+                "properties": {
+                  "activeSeconds": {
+                    "type": "integer",
+                    "description": "Seconds to add"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Log success"
+          }
+        }
+      }
+    },
+    "/account/me": {
+      "get": {
+        "tags": ["Account"],
+        "summary": "Get Current User Info",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User Info"
+          }
+        }
+      }
+    }
+  }
 }

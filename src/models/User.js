@@ -28,7 +28,6 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'parent_id',
       });
 
-
       User.hasMany(models.Invite, {
         as: 'receivedInvites',
         foreignKey: 'child_id',
@@ -72,17 +71,17 @@ module.exports = (sequelize, DataTypes) => {
 
       first_name: {
         type: DataTypes.STRING(50),
-        allowNull: true
+        allowNull: true,
       },
 
       last_name: {
         type: DataTypes.STRING(50),
-        allowNull: true
+        allowNull: true,
       },
 
       display_name: {
         type: DataTypes.STRING(100),
-        allowNull: true
+        allowNull: true,
       },
 
       role: {
@@ -103,7 +102,7 @@ module.exports = (sequelize, DataTypes) => {
       },
 
       dob: {
-        type: DataTypes.DATEONLY
+        type: DataTypes.DATEONLY,
       },
 
       gender: {
@@ -113,9 +112,8 @@ module.exports = (sequelize, DataTypes) => {
 
       avatar_url: {
         type: DataTypes.STRING(255),
-        allowNull: true
+        allowNull: true,
       },
-
     },
     {
       sequelize,

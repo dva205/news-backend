@@ -1,397 +1,477 @@
 import { Op } from 'sequelize';
-import db from "../models/index.js";
+import db from '../models/index.js';
 import { ApiError } from '../utils/ApiError.js';
-import { formatArticleResponse, formatCommentResponse } from '../helpers/formatArticle.js';
+import {
+  formatArticleResponse,
+  formatCommentResponse,
+} from '../helpers/formatArticle.js';
 import { calculateChildAge } from '../helpers/calculateChildAge.js';
-
+import { searchArticle } from '../utils/aiService.js';
 
 export const getStrictRules = async (childId) => {
-    return await db.Strict.findOne({
-        where: { child_id: childId }
-    });
+  return await db.Strict.findOne({
+    where: { child_id: childId },
+  });
 };
 
 export const fetchAllCategories = async (childId) => {
-    // Get strict rules
-    const strictRules = await getStrictRules(childId);
+  // Get strict rules
+  const strictRules = await getStrictRules(childId);
 
-    // Query all categories
-    let categories = await db.Category.findAll({
-        attributes: ['id', 'name'],
-        order: [['name', 'ASC']]
-    });
+  // Query all categories
+  let categories = await db.Category.findAll({
+    attributes: ['id', 'name'],
+    order: [['name', 'ASC']],
+  });
 
-    if (!categories) return [];
+  if (!categories) return [];
 
-    // Filter blocked categories if strict rules exist
-    if (strictRules?.blocked_category) {
-        const blockedCategoryArray = JSON.parse(strictRules.blocked_category);
-        if (blockedCategoryArray.length > 0) {
-            categories = categories.filter(cat =>
-                !blockedCategoryArray.includes(cat.name)
-            );
-        }
+  // Filter blocked categories if strict rules exist
+  if (strictRules?.blocked_category) {
+    const blockedCategoryArray = JSON.parse(strictRules.blocked_category);
+    if (blockedCategoryArray.length > 0) {
+      categories = categories.filter(
+        (cat) => !blockedCategoryArray.includes(cat.name)
+      );
     }
+  }
 
-    return categories;
+  return categories;
 };
 
 export const fetchNews = async (childId, page, limit, search, categoryName) => {
-    const offset = (page - 1) * limit;
+  const offset = (page - 1) * limit;
 
-    const [strictRules, child, allBuckets] = await Promise.all([
-        getStrictRules(childId),
-        db.User.findByPk(childId, { attributes: ['dob'] }),
-        db.Article.findAll({
-            attributes: [
-                [db.sequelize.fn('DISTINCT', db.sequelize.col('age_bucket')), 'age_bucket']
-            ],
-            raw: true
-        }
+  const [strictRules, child, allBuckets] = await Promise.all([
+    getStrictRules(childId),
+    db.User.findByPk(childId, { attributes: ['dob'] }),
+    db.Article.findAll({
+      attributes: [
+        [
+          db.sequelize.fn('DISTINCT', db.sequelize.col('age_bucket')),
+          'age_bucket',
+        ],
+      ],
+      raw: true,
+    }),
+  ]);
 
-        )
-    ]);
+  const childAge = calculateChildAge(child.dob);
 
+  const andCriteria = [];
+  const whereConditions = {};
 
-    const childAge = calculateChildAge(child.dob);
+  // Search
+  if (search) {
+    const articles = await searchArticle(search);
 
+    if (!articles || articles.length === 0) {
+      return {
+        articles: [],
+        pagination: {
+          totalItems: 0,
+          totalPages: 0,
+          currentPage: page,
+          limit,
+        },
+      };
+    }
 
-    const andCriteria = [];
-    const whereConditions = {};
+    const sourceUrls = articles.map((a) => a.url);
 
-    // Search
-    if (search) {
+    whereConditions.source_url = { [Op.in]: sourceUrls };
+  }
+
+  // Include conditions for category join
+  const includeConditions = {
+    model: db.Category,
+    as: 'category',
+    attributes: ['id', 'name'],
+  };
+
+  if (categoryName) {
+    includeConditions.where = { name: categoryName };
+    includeConditions.required = true; // INNER JOIN
+  }
+
+  // Apply blocked_category
+  if (strictRules?.blocked_category) {
+    // convert sang array
+    const blockedCategoryArray = JSON.parse(strictRules.blocked_category);
+
+    if (blockedCategoryArray.length > 0) {
+      const blockedCategories = await db.Category.findAll({
+        where: { name: { [Op.in]: blockedCategoryArray } }, // Tìm categories có tên trong array
+        attributes: ['id'], // lấy id,
+      });
+
+      const blockedIds = blockedCategories.map((c) => c.id);
+
+      if (blockedIds.length > 0) {
+        whereConditions.category_id = { [Op.notIn]: blockedIds };
+      }
+    }
+  }
+
+  // Apply blocked_keyword
+  if (strictRules?.blocked_keyword) {
+    // convert sang array
+    const blockedKeywordArray = JSON.parse(strictRules.blocked_keyword);
+
+    if (blockedKeywordArray.length > 0) {
+      blockedKeywordArray.forEach((keyword) => {
         andCriteria.push({
-            [Op.or]: [
-                { title: { [Op.like]: `%${search}%` } },
-                { content: { [Op.like]: `%${search}%` } }
-            ]
+          [Op.and]: [
+            { title: { [Op.notLike]: `% ${keyword} %` } },
+            { content: { [Op.notLike]: `% ${keyword} %` } },
+          ],
         });
+      });
     }
+  }
 
-    // Include conditions for category join
-    const includeConditions = {
-        model: db.Category,
-        as: 'category',
-        attributes: ['id', 'name'],
-    };
+  // apply age
+  if (childAge > 0 && allBuckets.length > 0) {
+    const validBuckets = allBuckets
+      .map((item) => item.age_bucket) // Biến đổi [{age_bucket: '6-11'}] -> ['6-11']
+      .filter((bucket) => {
+        // Nếu bucket null hoặc rỗng -> Bài viết không giới hạn tuổi -> Lấy
+        if (!bucket) return true;
 
-    if (categoryName) {
-        includeConditions.where = { name: categoryName };
-        includeConditions.required = true; // INNER JOIN
-    }
+        // Xử lý dạng "6-11"
+        if (bucket.includes('-')) {
+          const [min, max] = bucket.split('-').map(Number); // Tách chuỗi và chuyển thành số
 
-    // Apply blocked_category
-    if (strictRules?.blocked_category) {
-        // convert sang array
-        const blockedCategoryArray = JSON.parse(strictRules.blocked_category);
-
-        if (blockedCategoryArray.length > 0) {
-            const blockedCategories = await db.Category.findAll({
-                where: { name: { [Op.in]: blockedCategoryArray } },  // Tìm categories có tên trong array
-                attributes: ['id'], // lấy id,
-            });
-
-            const blockedIds = blockedCategories.map(c => c.id);
-
-            if (blockedIds.length > 0) {
-                whereConditions.category_id = { [Op.notIn]: blockedIds };
-            }
+          return childAge >= min;
         }
+        return false;
+      });
 
+    // 2. Đưa điều kiện vào query
+    if (validBuckets.length > 0) {
+      // Nếu tìm thấy bucket phù hợp, chỉ lấy bài viết thuộc bucket đó
+      andCriteria.push({
+        age_bucket: { [Op.in]: validBuckets },
+      });
+    } else {
+      // Trường hợp đặc biệt: Tuổi của trẻ không khớp bucket nào cả (VD: 5 tuổi, nhưng chỉ có 6-11)
+      // Ta cần chặn không cho ra kết quả nào.
+      // Cách đơn giản nhất là thêm một điều kiện vô lý (VD: id = null)
+      andCriteria.push({
+        id: null,
+      });
     }
+  }
 
-    // Apply blocked_keyword
-    if (strictRules?.blocked_keyword) {
-        // convert sang array
-        const blockedKeywordArray = JSON.parse(strictRules.blocked_keyword);
+  if (andCriteria.length > 0) {
+    whereConditions[Op.and] = andCriteria;
+  }
 
-        if (blockedKeywordArray.length > 0) {
-            blockedKeywordArray.forEach(keyword => {
-                andCriteria.push({
-                    [Op.and]: [
-                        { title: { [Op.notLike]: `% ${keyword} %` } },
-                        { content: { [Op.notLike]: `% ${keyword} %` } }
-                    ]
-                });
-            });
-        }
-    }
+  // Query
+  const { count, rows } = await db.Article.findAndCountAll({
+    where: whereConditions,
+    include: [includeConditions],
+    order: [['published_at', 'DESC']],
+    offset,
+    limit,
+  });
 
+  // check save once by
+  const articleIds = rows.map((article) => article.id);
+  let savedArticleIds = new Set();
 
-    // apply age
-    if (childAge > 0 && allBuckets.length > 0) {
-        const validBuckets = allBuckets
-            .map(item => item.age_bucket) // Biến đổi [{age_bucket: '6-11'}] -> ['6-11']
-            .filter(bucket => {
-                // Nếu bucket null hoặc rỗng -> Bài viết không giới hạn tuổi -> Lấy
-                if (!bucket) return true;
-
-                // Xử lý dạng "6-11"
-                if (bucket.includes('-')) {
-                    const [min, max] = bucket.split('-').map(Number); // Tách chuỗi và chuyển thành số
-
-                    return childAge >= min;
-                }
-                return false;
-            });
-
-        // 2. Đưa điều kiện vào query
-        if (validBuckets.length > 0) {
-            // Nếu tìm thấy bucket phù hợp, chỉ lấy bài viết thuộc bucket đó
-            andCriteria.push({
-                age_bucket: { [Op.in]: validBuckets }
-            });
-        } else {
-            // Trường hợp đặc biệt: Tuổi của trẻ không khớp bucket nào cả (VD: 5 tuổi, nhưng chỉ có 6-11)
-            // Ta cần chặn không cho ra kết quả nào.
-            // Cách đơn giản nhất là thêm một điều kiện vô lý (VD: id = null)
-            andCriteria.push({
-                id: null
-            });
-        }
-    }
-
-    if (andCriteria.length > 0) {
-        whereConditions[Op.and] = andCriteria;
-    }
-
-
-    // Query
-    const { count, rows } = await db.Article.findAndCountAll({
-        where: whereConditions,
-        include: [includeConditions],
-        order: [['published_at', 'DESC']],
-        offset,
-        limit,
+  if (articleIds.length > 0) {
+    const savedRecords = await db.SavedArticle.findAll({
+      where: {
+        child_id: childId,
+        article_id: { [Op.in]: articleIds }, // Chỉ check trong danh sách bài hiện tại
+      },
+      attributes: ['article_id'],
     });
 
-    // check save once by 
-    const articleIds = rows.map(article => article.id);
-    let savedArticleIds = new Set();
+    // Tạo một Set chứa các ID đã lưu để check cho nhanh (O(1))
+    savedRecords.forEach((record) => savedArticleIds.add(record.article_id));
+  }
 
-    if (articleIds.length > 0) {
-        const savedRecords = await db.SavedArticle.findAll({
-            where: {
-                child_id: childId,
-                article_id: { [Op.in]: articleIds } // Chỉ check trong danh sách bài hiện tại
-            },
-            attributes: ['article_id'],
-        });
+  const totalPages = Math.ceil(count / limit);
 
-        // Tạo một Set chứa các ID đã lưu để check cho nhanh (O(1))
-        savedRecords.forEach(record => savedArticleIds.add(record.article_id));
-    }
-
-    const totalPages = Math.ceil(count / limit);
-
-    return {
-        articles: rows.map(article => formatArticleResponse(article, savedArticleIds.has(article.id))),
-        pagination: {
-            totalItems: count,
-            totalPages,
-            currentPage: page,
-            limit
-        }
-    };
+  return {
+    articles: rows.map((article) =>
+      formatArticleResponse(article, savedArticleIds.has(article.id))
+    ),
+    pagination: {
+      totalItems: count,
+      totalPages,
+      currentPage: page,
+      limit,
+    },
+  };
 };
 
 export const fetchArticleById = async (childId, articleId) => {
-    const strictRules = await getStrictRules(childId);
+  const strictRules = await getStrictRules(childId);
 
-    const article = await db.Article.findOne({
-        where: { id: articleId },
-        include: [{
-            model: db.Category,
-            as: 'category',
-            attributes: ['name']
-        }]
-    });
+  const article = await db.Article.findOne({
+    where: { id: articleId },
+    include: [
+      {
+        model: db.Category,
+        as: 'category',
+        attributes: ['name'],
+      },
+    ],
+  });
 
-    if (!article) {
-        throw new ApiError("Không tìm thấy bài báo", 404);
+  if (!article) {
+    throw new ApiError('Không tìm thấy bài báo', 404);
+  }
+
+  // Check if category is blocked
+  if (strictRules?.blocked_category) {
+    const blockedCategoryArray = JSON.parse(strictRules.blocked_category);
+
+    if (
+      blockedCategoryArray.length > 0 &&
+      blockedCategoryArray.includes(article.category.name)
+    ) {
+      throw new ApiError('Bài báo này đã bị chặn bởi phụ huynh', 403);
     }
+  }
 
-    // Check if category is blocked
-    if (strictRules?.blocked_category) {
-        const blockedCategoryArray = JSON.parse(strictRules.blocked_category);
+  // Check if contains blocked keywords
+  if (strictRules?.blocked_keyword) {
+    const blockedKeywordArray = JSON.parse(strictRules.blocked_keyword);
 
-        if (blockedCategoryArray.length > 0 && blockedCategoryArray.includes(article.category.name)) {
-            throw new ApiError("Bài báo này đã bị chặn bởi phụ huynh", 403);
-        }
+    if (blockedKeywordArray.length > 0) {
+      const text = `${article.title} ${article.content}`.toLowerCase();
+      const hasBlockedKeyword = blockedKeywordArray.some((kw) =>
+        text.includes(kw.toLowerCase())
+      );
+
+      if (hasBlockedKeyword) {
+        throw new ApiError('Bài báo này đã bị chặn bởi phụ huynh', 403);
+      }
     }
+  }
 
-    // Check if contains blocked keywords
-    if (strictRules?.blocked_keyword) {
-        const blockedKeywordArray = JSON.parse(strictRules.blocked_keyword);
+  const savedRecord = await db.SavedArticle.findOne({
+    where: { child_id: childId, article_id: articleId },
+  });
 
-        if (blockedKeywordArray.length > 0) {
-            const text = `${article.title} ${article.content}`.toLowerCase();
-            const hasBlockedKeyword = blockedKeywordArray.some(kw =>
-                text.includes(kw.toLowerCase())
-            );
-
-            if (hasBlockedKeyword) {
-                throw new ApiError("Bài báo này đã bị chặn bởi phụ huynh", 403);
-            }
-        }
-    }
-
-    const savedRecord = await db.SavedArticle.findOne({
-        where: { child_id: childId, article_id: articleId }
-    });
-
-    return formatArticleResponse(article, !!savedRecord);
+  return formatArticleResponse(article, !!savedRecord);
 };
 
 export const createComment = async (childId, articleId, content) => {
-    // tìm báo để xem có bị cấm ko
-    const article = await db.Article.findOne({
-        where: { id: articleId },
-        include: [{
-            model: db.Category,
-            as: 'category',
-            attributes: ['name']
-        }]
-    });
+  // tìm báo để xem có bị cấm ko
+  const article = await db.Article.findOne({
+    where: { id: articleId },
+    include: [
+      {
+        model: db.Category,
+        as: 'category',
+        attributes: ['name'],
+      },
+    ],
+  });
 
-    if (!article) {
-        throw new ApiError('Bài báo không tồn tại hoặc đã bị xóa', 404)
+  if (!article) {
+    throw new ApiError('Bài báo không tồn tại hoặc đã bị xóa', 404);
+  }
+
+  const strictRules = await getStrictRules(childId);
+
+  if (strictRules?.blocked_category) {
+    const blockedCategoryArray = JSON.parse(strictRules.blocked_category);
+    if (blockedCategoryArray.includes(article.category.name)) {
+      throw new ApiError(
+        'Bạn không thể bình luận vì bài viết thuộc danh mục bị hạn chế',
+        403
+      );
     }
+  }
 
-    const strictRules = await getStrictRules(childId);
+  if (strictRules?.blocked_keyword) {
+    const blockedKeywordArray = JSON.parse(strictRules.blocked_keyword);
 
-    if (strictRules?.blocked_category) {
-        const blockedCategoryArray = JSON.parse(strictRules.blocked_category);
-        if (blockedCategoryArray.includes(article.category.name)) {
-            throw new ApiError("Bạn không thể bình luận vì bài viết thuộc danh mục bị hạn chế", 403);
-        }
+    const text = `${article.title} ${article.content}`.toLowerCase();
+    const hasBlockedKeyword = blockedKeywordArray.some((kw) =>
+      text.includes(kw.toLowerCase())
+    );
+
+    if (hasBlockedKeyword) {
+      throw new ApiError(
+        'Bạn không thể bình luận vì bài viết chứa nội dung bị hạn chế',
+        403
+      );
     }
+  }
 
-    if (strictRules?.blocked_keyword) {
-        const blockedKeywordArray = JSON.parse(strictRules.blocked_keyword);
+  const newComment = await db.Comment.create({
+    child_id: childId,
+    article_id: articleId,
+    content,
+  });
 
-        const text = `${article.title} ${article.content}`.toLowerCase();
-        const hasBlockedKeyword = blockedKeywordArray.some(kw =>
-            text.includes(kw.toLowerCase())
-        );
+  const fullComment = await db.Comment.findByPk(newComment.id, {
+    include: [
+      {
+        model: db.User,
+        as: 'user',
+        attributes: ['username', 'avatar_url'],
+      },
+    ],
+  });
 
-        if (hasBlockedKeyword) {
-            throw new ApiError("Bạn không thể bình luận vì bài viết chứa nội dung bị hạn chế", 403);
-        }
-    }
-
-    const newComment = await db.Comment.create({
-        child_id: childId,
-        article_id: articleId,
-        content
-    });
-
-    const fullComment = await db.Comment.findByPk(newComment.id, {
-        include: [{
-            model: db.User,
-            as: 'user',
-            attributes: ['username', 'avatar_url']
-        }]
-    });
-
-    return formatCommentResponse(fullComment);
+  return formatCommentResponse(fullComment);
 };
 
 export const changeStatusSave = async (childId, articleId) => {
-    const article = await db.Article.findOne({
-        where: { id: articleId },
-        include: [{
-            model: db.Category,
-            as: 'category',
-            attributes: ['name']
-        }]
+  const article = await db.Article.findOne({
+    where: { id: articleId },
+    include: [
+      {
+        model: db.Category,
+        as: 'category',
+        attributes: ['name'],
+      },
+    ],
+  });
+
+  if (!article) {
+    throw new ApiError('Bài báo không tồn tại hoặc đã bị xóa', 404);
+  }
+
+  const strictRules = await getStrictRules(childId);
+
+  if (strictRules?.blocked_category) {
+    const blockedCategoryArray = JSON.parse(strictRules.blocked_category);
+    if (blockedCategoryArray.includes(article.category.name)) {
+      throw new ApiError(
+        'Bạn không thể lưu bài viết vì bài viết thuộc danh mục bị hạn chế',
+        403
+      );
+    }
+  }
+
+  if (strictRules?.blocked_keyword) {
+    const blockedKeywordArray = JSON.parse(strictRules.blocked_keyword);
+
+    const text = `${article.title} ${article.content}`.toLowerCase();
+    const hasBlockedKeyword = blockedKeywordArray.some((kw) =>
+      text.includes(kw.toLowerCase())
+    );
+
+    if (hasBlockedKeyword) {
+      throw new ApiError(
+        'Bạn không thể lưu bài viết vì bài viết chứa nội dung bị hạn chế',
+        403
+      );
+    }
+  }
+
+  const savedRecord = await db.SavedArticle.findOne({
+    where: { article_id: articleId, child_id: childId },
+  });
+
+  let message = '';
+  let isSaved = false;
+
+  if (!savedRecord) {
+    await db.SavedArticle.create({
+      article_id: articleId,
+      child_id: childId,
     });
+    message = 'Đã lưu bài viết vào danh sách đọc sau';
+    isSaved = true;
+  } else {
+    await savedRecord.destroy();
+    message = 'Đã bỏ lưu bài viết';
+    isSaved = false;
+  }
 
-    if (!article) {
-        throw new ApiError('Bài báo không tồn tại hoặc đã bị xóa', 404)
-    }
-
-    const strictRules = await getStrictRules(childId);
-
-    if (strictRules?.blocked_category) {
-        const blockedCategoryArray = JSON.parse(strictRules.blocked_category);
-        if (blockedCategoryArray.includes(article.category.name)) {
-            throw new ApiError("Bạn không thể lưu bài viết vì bài viết thuộc danh mục bị hạn chế", 403);
-        }
-    }
-
-    if (strictRules?.blocked_keyword) {
-        const blockedKeywordArray = JSON.parse(strictRules.blocked_keyword);
-
-        const text = `${article.title} ${article.content}`.toLowerCase();
-        const hasBlockedKeyword = blockedKeywordArray.some(kw =>
-            text.includes(kw.toLowerCase())
-        );
-
-        if (hasBlockedKeyword) {
-            throw new ApiError("Bạn không thể lưu bài viết vì bài viết chứa nội dung bị hạn chế", 403);
-        }
-    }
-
-    const savedRecord = await db.SavedArticle.findOne({
-        where: { article_id: articleId, child_id: childId }
-    });
-
-    let message = '';
-    let isSaved = false;
-
-    if (!savedRecord) {
-        await db.SavedArticle.create({
-            article_id: articleId,
-            child_id: childId
-        });
-        message = 'Đã lưu bài viết vào danh sách đọc sau';
-        isSaved = true;
-    } else {
-        await savedRecord.destroy();
-        message = 'Đã bỏ lưu bài viết';
-        isSaved = false;
-    }
-
-    return { message, isSaved };
-}
+  return { message, isSaved };
+};
 
 export const fetchSavedArticle = async (childId, page, limit) => {
-    const offset = (page - 1) * limit;
+  const offset = (page - 1) * limit;
 
+  const { count, rows } = await db.SavedArticle.findAndCountAll({
+    where: { child_id: childId },
+    order: [['created_at', 'DESC']],
+    limit,
+    offset,
+    include: [
+      {
+        model: db.Article,
+        as: 'article',
+        include: [
+          {
+            model: db.Category,
+            as: 'category',
+            attributes: ['name'],
+          },
+        ], // hiển thị ra card
+      },
+    ],
+  });
 
-    const { count, rows } = await db.SavedArticle.findAndCountAll({
-        where: { child_id: childId },
-        order: [['created_at', 'DESC']],
-        limit,
-        offset,
-        include: [{
-            model: db.Article,
-            as: 'article',
-            include: [{
-                model: db.Category,
-                as: 'category',
-                attributes: ['name']
-            }] // hiển thị ra card
-        }],
-    });
+  const articles = rows.map((item) => formatArticleResponse(item, true));
 
-    const articles = rows.map(item => formatArticleResponse(item, true));
+  const totalPages = Math.ceil(count / limit);
 
-    const totalPages = Math.ceil(count / limit);
+  return {
+    articles,
+    pagination: {
+      totalArticles: count,
+      totalPages,
+      currentPage: page,
+      limit,
+    },
+  };
+};
 
-    return {
-        articles,
-        pagination: {
-            totalArticles: count,
-            totalPages,
-            currentPage: page,
-            limit
-        }
-    }
-}
+export const fetchRecommendArticles = async (
+  articleId,
+  recommendUrls,
+  childId
+) => {
+  const articles = await db.Article.findAll({
+    where: {
+      source_url: { [Op.in]: recommendUrls },
+      id: { [Op.ne]: articleId }, // khác id của bài đang đọc
+    },
+    include: [
+      {
+        model: db.Category,
+        as: 'category',
+        attributes: ['name'],
+      },
+    ],
+  });
 
+  if (!articles || articles.length === 0) {
+    return [];
+  }
 
+  const recommendedIds = articles.map((a) => a.id);
 
+  const savedRecord = await db.SavedArticle.findAll({
+    where: {
+      child_id: childId,
+      article_id: { [Op.in]: recommendedIds },
+    },
+    attributes: ['article_id'],
+  });
 
+  // Set chứa các ID bài báo mà child đã lưu
+  const savedArticleIds = new Set(savedRecord.map((r) => r.article_id));
+
+  // 4. Map kết quả
+  return articles.map((a) => {
+    // Kiểm tra xem ID bài báo hiện tại có nằm trong Set đã lưu không
+    const isSaved = savedArticleIds.has(a.id);
+
+    // Truyền true/false vào hàm format
+    return formatArticleResponse(a, isSaved);
+  });
+};

@@ -1,5 +1,8 @@
 import express from 'express';
-import { forceUserLogOut, validateSession } from '../controllers/publicAuthController.js';
+import {
+  forceUserLogOut,
+  validateSession,
+} from '../controllers/publicAuthController.js';
 
 const router = express.Router();
 

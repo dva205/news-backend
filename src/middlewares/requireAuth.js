@@ -1,58 +1,61 @@
-import jwt from "jsonwebtoken";
-import db from "../models/index.js";
-import { sendError } from "../utils/ApiResponse.js";
+import jwt from 'jsonwebtoken';
+import db from '../models/index.js';
+import { sendError } from '../utils/ApiResponse.js';
 
 export const requireAuth = (req, res, next) => {
-    try {
-        // 1. Lấy Authorization header
-        const authHeader = req.headers?.authorization;
+  try {
+    // 1. Lấy Authorization header
+    const authHeader = req.headers?.authorization;
 
-        // 2. Kiểm tra có header không, và có đúng định dạng "Bearer <token>" không
-        if (!authHeader || !authHeader.startsWith("Bearer ")) {
-            return sendError(res, {
-                statusCode: 401,
-                message: "Thiếu authorization header hoặc token ko hợp lệ"
-            });
+    // 2. Kiểm tra có header không, và có đúng định dạng "Bearer <token>" không
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return sendError(res, {
+        statusCode: 401,
+        message: 'Thiếu authorization header hoặc token ko hợp lệ',
+      });
+    }
+
+    const token = authHeader.split(' ')[1]; // lấy phần <token>
+
+    // 3. Verify token
+    jwt.verify(
+      token,
+      process.env.ACCESS_TOKEN_SECRET,
+      async (err, decodedUser) => {
+        if (err) {
+          return sendError(res, {
+            statusCode: 401,
+            message: 'Access Token hết hạn hoặc không đúng',
+          });
         }
 
-        const token = authHeader.split(" ")[1]; // lấy phần <token>
-
-        // 3. Verify token
-        jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, async (err, decodedUser) => {
-            if (err) {
-                return sendError(res, {
-                    statusCode: 401,
-                    message: "Access Token hết hạn hoặc không đúng"
-                });
-            }
-
-            // 4. Tìm user trong DB
-            const user = await db.User.findOne({
-                where: { id: decodedUser.id },
-                attributes: {
-                    exclude: ["password_hashed"],
-                },
-            });
-
-            if (!user) {
-                return res.status(404).json({
-                    EM: "Người dùng không tồn tại",
-                    DT: {}
-                });
-            }
-
-            // 5. Gắn user vào req để route sau dùng
-            req.user = user;
-
-            // 6. Cho request đi tiếp
-            next();
+        // 4. Tìm user trong DB
+        const user = await db.User.findOne({
+          where: { id: decodedUser.id },
+          attributes: {
+            exclude: ['password_hashed'],
+          },
         });
 
-    } catch (error) {
-        console.log("Lỗi khi xác minh quyền người dùng", error);
-        return res.status(500).json({
-            EM: "Lỗi server",
-            DT: {}
-        });
-    }
+        if (!user) {
+          return res.status(404).json({
+            EM: 'Người dùng không tồn tại',
+            DT: {},
+          });
+        }
+
+        // 5. Gắn user vào req để route sau dùng
+        req.user = user;
+
+        // 6. Cho request đi tiếp
+        next();
+      }
+    );
+  } catch (error) {
+    console.log('Lỗi khi xác minh quyền người dùng', error);
+    return res.status(500).json({
+      EM: 'Lỗi server',
+      DT: {},
+    });
+  }
 };

@@ -10,20 +10,16 @@ import parentChildManagementRoute from './routes/parentChildManagementRoute.js';
 import childAuthRoute from './routes/childAuthRoute.js';
 import childArticleRoute from './routes/childArticleRoute.js';
 import publicArticleRoute from './routes/publicArticleRoute.js';
-import childActivityRoute from './routes/childActivityRoute.js'
-import textToSpeechRoute from './routes/textToSpeechRoute.js'
+import childActivityRoute from './routes/childActivityRoute.js';
+import textToSpeechRoute from './routes/textToSpeechRoute.js';
 import { requireAuth } from './middlewares/requireAuth.js';
 import { requireParent } from './middlewares/requireParent.js';
 import { cronArticle } from './cron/cronArticle.js';
 import { requireChild } from './middlewares/requireChild.js';
-import { checkTime } from './middlewares/checkTime.js'
-import publicAuthRoute from './routes/publicAuthRoute.js'
+import { checkTime } from './middlewares/checkTime.js';
+import publicAuthRoute from './routes/publicAuthRoute.js';
 import fs from 'fs';
 import swaggerUi from 'swagger-ui-express';
-
-// Get __dirname in ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -35,44 +31,59 @@ app.use(
   cors({
     origin: ['http://localhost:5173'],
     credentials: true,
-  }),
+  })
 );
 
 // swagger
-const swaggerDocument = JSON.parse(fs.readFileSync('./src/swagger.json', 'utf-8'));
-
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument))
-
-// Serve static files (avatars) - URL: http://localhost:5000/image/filename.jpg
-app.use('/image', express.static(path.join(__dirname, '../image')));
-
+const swaggerDocument = JSON.parse(
+  fs.readFileSync('./src/swagger.json', 'utf-8')
+);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // run cron-job
 cronArticle();
 
 // parent routes
-app.use('/parent/auth', parentAuthRoute)
-app.use('/parent/child', requireAuth, requireParent, parentChildManagementRoute);
+app.use('/parent/auth', parentAuthRoute);
+app.use(
+  '/parent/child',
+  requireAuth,
+  requireParent,
+  parentChildManagementRoute
+);
 
 // child routes
-app.use('/child/auth', childAuthRoute)
-app.use('/child/articles', requireAuth, requireChild, checkTime, childArticleRoute);
-app.use('/child/activity', requireAuth, requireChild, checkTime, childActivityRoute)
-app.use('/child/tts', requireAuth, requireChild, checkTime, textToSpeechRoute)
+app.use('/child/auth', childAuthRoute);
+app.use(
+  '/child/articles',
+  requireAuth,
+  requireChild,
+  checkTime,
+  childArticleRoute
+);
+app.use(
+  '/child/activity',
+  requireAuth,
+  requireChild,
+  checkTime,
+  childActivityRoute
+);
+app.use('/child/tts', requireAuth, requireChild, checkTime, textToSpeechRoute);
 
 // public route
-app.use('/public/articles', publicArticleRoute)
-app.use('/public/auth', publicAuthRoute)
+app.use('/public/articles', publicArticleRoute);
+app.use('/public/auth', publicAuthRoute);
 
-
-connectDB().then(() => {
-  try {
-    app.listen(PORT, () => {
-      console.log(`Server connected to http://localhost:${PORT}`);
-    })
-  } catch (error) {
-    console.log('Cannot connect to the server')
-  }
-}).catch(error => {
-  console.log("Invalid database connection...!");
-})
+connectDB()
+  .then(() => {
+    try {
+      app.listen(PORT, () => {
+        console.log(`Server connected to http://localhost:${PORT}`);
+      });
+    } catch (error) {
+      console.log('Cannot connect to the server');
+    }
+  })
+  .catch((error) => {
+    console.log('Invalid database connection...!');
+  });

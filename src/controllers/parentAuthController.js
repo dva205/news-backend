@@ -1,170 +1,180 @@
-import { signUpParent, signInParent, signOutParent, updateParentProfile, refreshToken } from '../services/parentAuthService.js';
+import {
+  signUpParent,
+  signInParent,
+  signOutParent,
+  updateParentProfile,
+  refreshToken,
+} from '../services/parentAuthService.js';
 import { sendSuccess, sendError } from '../utils/ApiResponse.js';
-import { handleUploadImage } from '../utils/handleUpload.js'
+import { handleUploadImage } from '../utils/handleUpload.js';
 
 export const parentSignUp = async (req, res) => {
-    try {
-        const { email, password, firstName, lastName } = req.body;
+  try {
+    const { email, password, firstName, lastName } = req.body;
 
-        // 1. Validate 
-        if (!email || !password || !firstName || !lastName) {
-            return sendError(res, {
-                statusCode: 400,
-                message: "Tất cả các trường không được để trống"
-            });
-        }
-
-        // 2. Gọi Service 
-        await signUpParent(email, password, firstName, lastName);
-
-        // 3. Trả Response 
-        return sendSuccess(res, null, "Đăng kí thành công", 201);
-
-    } catch (error) {
-        console.error("Lỗi khi tạo tài khoản cho bố mẹ", error);
-        return sendError(res, error);
+    // 1. Validate
+    if (!email || !password || !firstName || !lastName) {
+      return sendError(res, {
+        statusCode: 400,
+        message: 'Tất cả các trường không được để trống',
+      });
     }
-}
+
+    // 2. Gọi Service
+    await signUpParent(email, password, firstName, lastName);
+
+    // 3. Trả Response
+    return sendSuccess(res, null, 'Đăng kí thành công', 201);
+  } catch (error) {
+    console.error('Lỗi khi tạo tài khoản cho bố mẹ', error);
+    return sendError(res, error);
+  }
+};
 
 export const parentSignIn = async (req, res) => {
-    try {
-        const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-        // 1. Validate
-        if (!email || !password) {
-            return sendError(res, {
-                statusCode: 400,
-                message: "Tất cả các trường không được để trống"
-            });
-        }
-
-        // 2. Gọi Service
-        const data = await signInParent(email, password);
-
-        // 3. Đặt Cookie 
-        res.cookie('refreshParentToken', data.refreshParentToken, {
-            httpOnly: true,
-            secure: false,
-            sameSite: "lax",
-            maxAge: data.REFRESH_TOKEN_TTL
-        });
-
-        // 4. Trả Response
-        return sendSuccess(res, { accessToken: data.accessToken }, "Đăng nhập thành công", 200);
-
-    } catch (error) {
-        console.error("Lỗi khi parent đăng nhập", error);
-        return sendError(res, error);
+    // 1. Validate
+    if (!email || !password) {
+      return sendError(res, {
+        statusCode: 400,
+        message: 'Tất cả các trường không được để trống',
+      });
     }
-}
 
+    // 2. Gọi Service
+    const data = await signInParent(email, password);
+
+    // 3. Đặt Cookie
+    res.cookie('refreshParentToken', data.refreshParentToken, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: data.REFRESH_TOKEN_TTL,
+    });
+
+    // 4. Trả Response
+    return sendSuccess(
+      res,
+      { accessToken: data.accessToken },
+      'Đăng nhập thành công',
+      200
+    );
+  } catch (error) {
+    console.error('Lỗi khi parent đăng nhập', error);
+    return sendError(res, error);
+  }
+};
 
 export const parentSignOut = async (req, res) => {
-    try {
-        // 1. Lấy token từ cookie
-        const refreshParentToken = req.cookies?.refreshParentToken;
+  try {
+    // 1. Lấy token từ cookie
+    const refreshParentToken = req.cookies?.refreshParentToken;
 
-        // 2. Gọi Service 
-        if (refreshParentToken) {
-            await signOutParent(refreshParentToken);
-        }
-
-        // 3. Xóa Cookie 
-        res.clearCookie("refreshParentToken", {
-            httpOnly: true,
-            // secure: true,
-            sameSite: "lax"
-        });
-
-        // 4. Trả Response
-        return sendSuccess(res, null, "Đăng xuất thành công", 200);
-
-    } catch (error) {
-        console.error("Lỗi khi gọi parent sign out", error);
-        return sendError(res, error);
+    // 2. Gọi Service
+    if (refreshParentToken) {
+      await signOutParent(refreshParentToken);
     }
-}
 
+    // 3. Xóa Cookie
+    res.clearCookie('refreshParentToken', {
+      httpOnly: true,
+      // secure: true,
+      sameSite: 'lax',
+    });
+
+    // 4. Trả Response
+    return sendSuccess(res, null, 'Đăng xuất thành công', 200);
+  } catch (error) {
+    console.error('Lỗi khi gọi parent sign out', error);
+    return sendError(res, error);
+  }
+};
 
 export const refreshParentToken = async (req, res) => {
-    try {
-        // 1. Lấy token từ cookie
-        const refreshParentToken = req.cookies?.refreshParentToken;
+  try {
+    // 1. Lấy token từ cookie
+    const refreshParentToken = req.cookies?.refreshParentToken;
 
-        if (!refreshParentToken) {
-            return sendError(res, {
-                statusCode: 401,
-                message: "Thiếu refresh token"
-            });
-        }
-
-        // 2. Gọi Service
-        const data = await refreshToken(refreshParentToken);
-
-        // 3. Trả Response
-        return sendSuccess(res, { accessToken: data.accessToken }, null, 200);
-
-    } catch (error) {
-        console.error("Lỗi khi gọi refreshToken", error);
-        return sendError(res, error);
+    if (!refreshParentToken) {
+      return sendError(res, {
+        statusCode: 401,
+        message: 'Thiếu refresh token',
+      });
     }
-}
+
+    // 2. Gọi Service
+    const data = await refreshToken(refreshParentToken);
+
+    // 3. Trả Response
+    return sendSuccess(res, { accessToken: data.accessToken }, null, 200);
+  } catch (error) {
+    console.error('Lỗi khi gọi refreshToken', error);
+    return sendError(res, error);
+  }
+};
 
 export const updateProfile = async (req, res) => {
-    try {
-        const parentId = req.user.id;
-        const { firstName, lastName, email } = req.body;
+  try {
+    const parentId = req.user.id;
+    const { firstName, lastName, email } = req.body;
 
-        // Validate: Check nếu có lỗi từ fileFilter
-        if (req.fileValidationError) {
-            return sendError(res, {
-                statusCode: 400,
-                message: req.fileValidationError
-            });
-        }
-
-        // Validate: Check auth
-        if (!parentId) {
-            return sendError(res, {
-                statusCode: 401,
-                message: "Người dùng không có quyền thực hiện hành động này"
-            });
-        }
-
-        // Validate: Check required fields
-        if (!firstName || !lastName || !email) {
-            return sendError(res, {
-                statusCode: 400,
-                message: "Họ, tên, email không được để trống"
-            });
-        }
-
-        // Xử lý avatar URL nếu có file upload
-        let avatarUrl = null;
-        if (req.file) {
-            try {
-                const b64 = Buffer.from(req.file.buffer).toString("base64")
-                let dataURI = "data:" + req.file.mimetype + ";base64," + b64;
-
-                const cldRes = await handleUploadImage(dataURI);
-
-                avatarUrl = cldRes.secure_url;
-            } catch (error) {
-                console.error("Lỗi khi upload ảnh lên cdn", error);
-                return sendError(res, {
-                    statusCode: 500,
-                    message: "Lỗi hệ thống"
-                });
-            }
-        }
-
-        // Gọi service để update
-        const data = await updateParentProfile(parentId, firstName, lastName, email, avatarUrl);
-
-        return sendSuccess(res, data, "Cập nhật thông tin thành công", 200);
-
-    } catch (error) {
-        console.error("Lỗi khi update parent profile", error);
-        return sendError(res, error);
+    // Validate: Check nếu có lỗi từ fileFilter
+    if (req.fileValidationError) {
+      return sendError(res, {
+        statusCode: 400,
+        message: req.fileValidationError,
+      });
     }
-}
+
+    // Validate: Check auth
+    if (!parentId) {
+      return sendError(res, {
+        statusCode: 401,
+        message: 'Người dùng không có quyền thực hiện hành động này',
+      });
+    }
+
+    // Validate: Check required fields
+    if (!firstName || !lastName || !email) {
+      return sendError(res, {
+        statusCode: 400,
+        message: 'Họ, tên, email không được để trống',
+      });
+    }
+
+    // Xử lý avatar URL nếu có file upload
+    let avatarUrl = null;
+    if (req.file) {
+      try {
+        const b64 = Buffer.from(req.file.buffer).toString('base64');
+        let dataURI = 'data:' + req.file.mimetype + ';base64,' + b64;
+
+        const cldRes = await handleUploadImage(dataURI);
+
+        avatarUrl = cldRes.secure_url;
+      } catch (error) {
+        console.error('Lỗi khi upload ảnh lên cdn', error);
+        return sendError(res, {
+          statusCode: 500,
+          message: 'Lỗi hệ thống',
+        });
+      }
+    }
+
+    // Gọi service để update
+    const data = await updateParentProfile(
+      parentId,
+      firstName,
+      lastName,
+      email,
+      avatarUrl
+    );
+
+    return sendSuccess(res, data, 'Cập nhật thông tin thành công', 200);
+  } catch (error) {
+    console.error('Lỗi khi update parent profile', error);
+    return sendError(res, error);
+  }
+};
