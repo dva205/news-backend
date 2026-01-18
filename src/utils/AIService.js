@@ -1,11 +1,10 @@
 import axios from 'axios';
 
-axios.defaults.baseURL = 'https://biometric-unclimbed-jayden.ngrok-free.dev';
 axios.defaults.headers.post['Content-Type'] = 'application/json';
 
 export const checkBadWord = async (content) => {
   try {
-    const res = await axios.post('/filter', {
+    const res = await axios.post('https://rosette-monumentless-preacquisitively.ngrok-free.dev/filter', {
       text: content,
       strict_mode: true,
     });
@@ -23,7 +22,7 @@ export const checkBadWord = async (content) => {
 
 export const searchArticle = async (search) => {
   try {
-    const res = await axios.post('/search', {
+    const res = await axios.post('https://euphoniously-ridgier-golden.ngrok-free.dev/search', {
       query: search,
       top_n: 4, // số kết quả
       top_k_lex: 1000,
@@ -40,7 +39,7 @@ export const searchArticle = async (search) => {
 
 export const recommendArticle = async (content) => {
   try {
-    const res = await axios.post('/recommend', {
+    const res = await axios.post('https://biometric-unclimbed-jayden.ngrok-free.dev/recommend', {
       text: content,
       top_k: 5, // số kết quả
     });

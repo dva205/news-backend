@@ -23,7 +23,7 @@ export const formatCommentResponse = (comment) => {
   return {
     id: comment.id,
     content: comment.content,
-    createdAt: comment.createdAt,
+    createdAt: new Date(comment.createdAt).toLocaleString('vi-VN'),
     user: {
       username: comment.user?.username || 'Ẩn danh',
       avatarUrl: comment.user?.avatar_url || null,
