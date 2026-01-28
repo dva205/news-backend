@@ -22,24 +22,28 @@ A comprehensive Node.js/Express backend API for a news platform designed for chi
 ## 🛠️ Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/yourusername/news-backend.git
    cd news-backend
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Set up environment variables**
-   
+
    Copy the example environment file and configure it with your credentials:
+
    ```bash
    cp .env.example .env
    ```
 
    Update the `.env` file with your configuration:
+
    ```env
    PORT=5000
    NODE_ENV=development
@@ -62,6 +66,7 @@ A comprehensive Node.js/Express backend API for a news platform designed for chi
    ```
 
 4. **Set up the database**
+
    ```bash
    # Run migrations
    npx sequelize-cli db:migrate
@@ -73,12 +78,15 @@ A comprehensive Node.js/Express backend API for a news platform designed for chi
 ## 🚀 Running the Application
 
 ### Development Mode
+
 ```bash
 npm run dev
 ```
+
 The server will start on `http://localhost:5000` with hot-reload enabled.
 
 ### Production Mode
+
 ```bash
 npm start
 ```
@@ -86,6 +94,7 @@ npm start
 ## 📚 API Documentation
 
 Once the server is running, access the interactive Swagger documentation at:
+
 ```
 http://localhost:5000/api-docs
 ```
@@ -93,6 +102,7 @@ http://localhost:5000/api-docs
 ## 🔑 API Endpoints
 
 ### Parent Routes
+
 - `POST /parent/auth/register` - Register a new parent account
 - `POST /parent/auth/login` - Parent login
 - `POST /parent/auth/logout` - Parent logout
@@ -102,6 +112,7 @@ http://localhost:5000/api-docs
 - `DELETE /parent/child/:id` - Delete child profile
 
 ### Child Routes
+
 - `POST /child/auth/login` - Child login
 - `POST /child/auth/logout` - Child logout
 - `GET /child/articles` - Get articles for child (with time-based restrictions)
@@ -112,6 +123,7 @@ http://localhost:5000/api-docs
 - `POST /child/tts` - Convert article text to speech
 
 ### Public Routes
+
 - `GET /public/articles` - Get public articles (no authentication required)
 - `GET /public/articles/:id` - Get public article details
 - `POST /public/auth/guest` - Create guest session
@@ -172,18 +184,18 @@ news-backend/
 
 ## 📝 Environment Variables
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `PORT` | Server port number | Yes |
-| `NODE_ENV` | Environment (development/production) | Yes |
-| `ACCESS_TOKEN_SECRET` | JWT secret key | Yes |
-| `SUPABASE_URL` | Supabase project URL | Yes |
-| `SERVICE_ROLE` | Supabase service role key | Yes |
-| `BUCKET` | Supabase storage bucket name | Yes |
-| `CLOUDINARY_API_KEY` | Cloudinary API key | Yes |
-| `CLOUDINARY_API_SECRET` | Cloudinary API secret | Yes |
-| `CLOUD_NAME` | Cloudinary cloud name | Yes |
-| `VOICERSS_API_KEY` | VoiceRSS API key for TTS | Yes |
+| Variable                | Description                          | Required |
+| ----------------------- | ------------------------------------ | -------- |
+| `PORT`                  | Server port number                   | Yes      |
+| `NODE_ENV`              | Environment (development/production) | Yes      |
+| `ACCESS_TOKEN_SECRET`   | JWT secret key                       | Yes      |
+| `SUPABASE_URL`          | Supabase project URL                 | Yes      |
+| `SERVICE_ROLE`          | Supabase service role key            | Yes      |
+| `BUCKET`                | Supabase storage bucket name         | Yes      |
+| `CLOUDINARY_API_KEY`    | Cloudinary API key                   | Yes      |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret                | Yes      |
+| `CLOUD_NAME`            | Cloudinary cloud name                | Yes      |
+| `VOICERSS_API_KEY`      | VoiceRSS API key for TTS             | Yes      |
 
 ## 🤝 Contributing
 
@@ -199,7 +211,7 @@ This project is licensed under the ISC License.
 
 ## 👥 Authors
 
-- Your Name - Initial work
+- Đinh Việt Anh
 
 ## 📞 Support
 
